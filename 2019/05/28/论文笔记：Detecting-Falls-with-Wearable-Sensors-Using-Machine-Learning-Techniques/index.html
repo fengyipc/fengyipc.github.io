@@ -276,7 +276,7 @@ height:50vh;
                 
                 
                     <div class="post-intro-read">
-                        <span>字数统计: <span class="post-count word-count">554</span>阅读时长: <span class="post-count reading-time">2 min</span></span>
+                        <span>字数统计: <span class="post-count word-count">574</span>阅读时长: <span class="post-count reading-time">2 min</span></span>
                     </div>
                 
                 <div class="post-intro-meta">
@@ -411,22 +411,22 @@ height:50vh;
 <p>4.25Hz  × 6 sensors × 9 axes</p>
 <p><img src="/images/fig0.jpg" alt></p>
 <p><img src="/images/fig1.jpg" alt></p>
-<h2 id="特征提取"><a href="#特征提取" class="headerlink" title="特征提取"></a>特征提取</h2><p>根据腰部传感器加速度峰值时间点，取左右各2秒的窗口，共25Hz×2s×2+1=101帧，即101×9维数组。而后分别提取max,min,mean,variance,skewness,kurtosis,autocorrelation sequence的前11个值,DFT得到5个频率值和5个振幅值。共 (5+11+10)×3×6=1404×1维向量。</p>
+<h2 id="特征提取"><a href="#特征提取" class="headerlink" title="特征提取"></a>特征提取</h2><p>根据腰部传感器加速度峰值时间点，取左右各2秒的窗口，共25Hz×2s×2+1=101帧，即101×9维数组。而后分别提取max，min，mean，variance，skewness，kurtosis五个值，以及autocorrelation sequence的前11个值,DFT得到5个频率值和5个振幅值。共$(5+11+10)×3×6=1404×1$维向量。</p>
 <h2 id="降维"><a href="#降维" class="headerlink" title="降维"></a>降维</h2><p>使用PCA(主成分分析）将1404维向量降维至50维。</p>
 <p><img src="/images/fig2.jpg" alt></p>
-<h2 id="评估指标"><a href="#评估指标" class="headerlink" title="评估指标"></a>评估指标</h2><p>1.正例召回率Se</p>
-<p>2.反例召回率Sp</p>
-<p>3.准确率Acc</p>
-<h2 id="训练集、验证集划分"><a href="#训练集、验证集划分" class="headerlink" title="训练集、验证集划分"></a>训练集、验证集划分</h2><p>k-fold交叉验证，k=10</p>
+<h2 id="评估指标"><a href="#评估指标" class="headerlink" title="评估指标"></a>评估指标</h2><p>1.正例召回率$Se=\frac{TP}{TP+FN}$</p>
+<p>2.反例召回率$Sp=\frac{TN}{TN+FP}$</p>
+<p>3.准确率$Acc=\frac{TP+TN}{TP+TN+FP+FN}$</p>
+<h2 id="训练集、验证集划分"><a href="#训练集、验证集划分" class="headerlink" title="训练集、验证集划分"></a>训练集、验证集划分</h2><p>k-fold交叉验证，$k=10$</p>
 <h2 id="分类算法"><a href="#分类算法" class="headerlink" title="分类算法"></a>分类算法</h2><p>1.k近邻算法(k-NN)</p>
 <p>2.最小二乘法(LSM)</p>
 <p>3.支持向量机(SVM)</p>
 <p>4.贝叶斯决策(BDM)</p>
 <p>5.动态时间规整(DTW)</p>
 <p>6.全连接神经网络(FNN)</p>
-<h2 id="结果"><a href="#结果" class="headerlink" title="结果"></a>结果</h2><p>1.准确率 k-NN&gt;LSM&gt;SVM&gt;BDM&gt;DTW&gt;FNN</p>
-<p>2.训练时间 FNN&gt;SVM&gt;k-NN&gt;DTW&gt;LSM&gt;BDM</p>
-<p>3.测试时间 DTW&gt;k-NN&gt;BDM&gt;LSM&gt;SVM&gt;FNN</p>
+<h2 id="结果"><a href="#结果" class="headerlink" title="结果"></a>结果</h2><p>1.准确率  $k-NN&gt;LSM&gt;SVM&gt;BDM&gt;DTW&gt;FNN$</p>
+<p>2.训练时间  $FNN&gt;SVM&gt;k-NN&gt;DTW&gt;LSM&gt;BDM$</p>
+<p>3.测试时间  $DTW&gt;k-NN&gt;BDM&gt;LSM&gt;SVM&gt;FNN$</p>
 <p>4.所有分类器准确率都达到95%以上，其中k-NN,LSM正例召回率达到100%</p>
 <p><img src="/images/fig3.jpg" alt></p>
 <p><img src="/images/fig4.jpg" alt></p>
@@ -440,8 +440,8 @@ height:50vh;
         <div class="license-wrapper">
             <p>原文作者：<a href="https://fengyipc.github.io">枫逸</a>
             </p><p>原文链接：<a href="https://fengyipc.github.io/2019/05/28/论文笔记：Detecting-Falls-with-Wearable-Sensors-Using-Machine-Learning-Techniques/">https://fengyipc.github.io/2019/05/28/论文笔记：Detecting-Falls-with-Wearable-Sensors-Using-Machine-Learning-Techniques/</a>
-            </p><p>发表日期：<a href="https://fengyipc.github.io/2019/05/28/论文笔记：Detecting-Falls-with-Wearable-Sensors-Using-Machine-Learning-Techniques/">May 28th 2019, 7:26:16 am</a>
-            </p><p>更新日期：<a href="https://fengyipc.github.io/2019/05/28/论文笔记：Detecting-Falls-with-Wearable-Sensors-Using-Machine-Learning-Techniques/">May 28th 2019, 7:43:29 am</a>
+            </p><p>发表日期：<a href="https://fengyipc.github.io/2019/05/28/论文笔记：Detecting-Falls-with-Wearable-Sensors-Using-Machine-Learning-Techniques/">May 28th 2019, 7:59:18 am</a>
+            </p><p>更新日期：<a href="https://fengyipc.github.io/2019/05/28/论文笔记：Detecting-Falls-with-Wearable-Sensors-Using-Machine-Learning-Techniques/">May 28th 2019, 8:00:19 am</a>
             </p><p>版权声明：本文采用<a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/">知识共享署名-非商业性使用 4.0 国际许可协议</a>进行许可</p>
         </div>
     
