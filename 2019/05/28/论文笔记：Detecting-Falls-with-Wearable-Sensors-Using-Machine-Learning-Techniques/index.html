@@ -276,7 +276,7 @@ height:50vh;
                 
                 
                     <div class="post-intro-read">
-                        <span>字数统计: <span class="post-count word-count">571</span>阅读时长: <span class="post-count reading-time">2 min</span></span>
+                        <span>字数统计: <span class="post-count word-count">567</span>阅读时长: <span class="post-count reading-time">2 min</span></span>
                     </div>
                 
                 <div class="post-intro-meta">
@@ -405,10 +405,15 @@ height:50vh;
         <div class="container container-unloaded">
             <main class="main post-page">
     <article class="article-entry">
-        <h2 id="数据集"><a href="#数据集" class="headerlink" title="数据集"></a>数据集</h2><pre><code>1. Number of Instance: 3060
-2. 17 Volunteers × Avg. 5 repetitions × 36 Movements
-3. 36 Movements including 20 Falls and 16 Daily Living Activities
-4. 25Hz  × 6 sensors × 9 axes</code></pre><p><img src="/images/fig0.jpg" alt></p>
+        <h2 id="数据集"><a href="#数据集" class="headerlink" title="数据集"></a>数据集</h2><blockquote>
+<ol>
+<li>Number of Instance: 3060</li>
+<li>17 Volunteers × Avg. 5 repetitions × 36 Movements</li>
+<li>36 Movements including 20 Falls and 16 Daily Living Activities</li>
+<li>25Hz  × 6 sensors × 9 axes</li>
+</ol>
+</blockquote>
+<p><img src="/images/fig0.jpg" alt></p>
 <p><img src="/images/fig1.jpg" alt></p>
 <h2 id="特征提取"><a href="#特征提取" class="headerlink" title="特征提取"></a>特征提取</h2><p>根据腰部传感器加速度峰值时间点，取左右各2秒的窗口，共25Hz×2s×2+1=101帧，即101×9维数组。而后分别提取max，min，mean，variance，skewness，kurtosis五个值，以及autocorrelation sequence的前11个值,DFT得到5个频率值和5个振幅值。共$(5+11+10)×3×6=1404×1$维向量。</p>
 <h2 id="降维"><a href="#降维" class="headerlink" title="降维"></a>降维</h2><p>使用PCA(主成分分析）将1404维向量降维至50维。</p>
@@ -440,7 +445,7 @@ height:50vh;
             <p>原文作者：<a href="https://fengyipc.github.io">枫逸</a>
             </p><p>原文链接：<a href="https://fengyipc.github.io/2019/05/28/论文笔记：Detecting-Falls-with-Wearable-Sensors-Using-Machine-Learning-Techniques/">https://fengyipc.github.io/2019/05/28/论文笔记：Detecting-Falls-with-Wearable-Sensors-Using-Machine-Learning-Techniques/</a>
             </p><p>发表日期：<a href="https://fengyipc.github.io/2019/05/28/论文笔记：Detecting-Falls-with-Wearable-Sensors-Using-Machine-Learning-Techniques/">May 28th 2019, 7:59:18 am</a>
-            </p><p>更新日期：<a href="https://fengyipc.github.io/2019/05/28/论文笔记：Detecting-Falls-with-Wearable-Sensors-Using-Machine-Learning-Techniques/">May 28th 2019, 8:52:30 am</a>
+            </p><p>更新日期：<a href="https://fengyipc.github.io/2019/05/28/论文笔记：Detecting-Falls-with-Wearable-Sensors-Using-Machine-Learning-Techniques/">May 28th 2019, 8:54:30 am</a>
             </p><p>版权声明：本文采用<a rel="license" href="http://creativecommons.org/licenses/by-nc/4.0/">知识共享署名-非商业性使用 4.0 国际许可协议</a>进行许可</p>
         </div>
     
