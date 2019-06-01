@@ -365,8 +365,9 @@ height:50vh;
         </a>
         <div class="abstract-content">
             GAN基础模型
-考虑替换成CGAN提升模型普适性
+替换成CGAN可以提升模型普适性
 判别器/分类器基础模型
+判别器残差结构生成器是否需加入残差结构仍待考虑
 生成器基础模型
 生成器与判别器的正则化层、激活函数、以及训练的Loss函数均需细化讨论如何添加
 相关论文1.GAN开山之作：
@@ -378,7 +379,7 @@ Generative Adversarial Nets
 Wasserstein Generative Adversarial Networks
 
 
-Improved Training of Wasserstein GANs (WGAN-GP)...
+Improved Training of Wa...
         </div>
         <div class="abstract-post-meta">
             <!-- date  -->
@@ -687,8 +688,6 @@ Number of Instance: 306017 Volunteers × Avg. 5 repetitions × 36 Movements36 Mo
     
     
     
-    
-    
     <div class="total-and-search">
         <div class="total-archive">
         Total : 3
@@ -795,41 +794,9 @@ jsonContent:
     <!-- CNZZ  -->
     
     </div>
-    <!-- async load share.js -->
+    <!-- async load share.js --><!-- hexo-inject:begin --><!-- hexo-inject:end -->
      
-    <script type="text/x-mathjax-config">
-    MathJax.Hub.Config({
-        tex2jax: {
-            inlineMath: [ ["$","$"], ["\\(","\\)"] ],
-            skipTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
-            processEscapes: true
-        }
-    });
-    MathJax.Hub.Queue(function() {
-        var all = MathJax.Hub.getAllJax();
-        for (var i = 0; i < all.length; ++i)
-            all[i].SourceElement().parentNode.className += ' has-jax';
-    });
-</script>
-<script src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script><!-- hexo-inject:begin --><!-- Begin: Injected MathJax -->
-<script type="text/x-mathjax-config">
-  MathJax.Hub.Config({"tex2jax":{"inlineMath":[["$","$"],["\\(","\\)"]],"skipTags":["script","noscript","style","textarea","pre","code"],"processEscapes":true},"TeX":{"equationNumbers":{"autoNumber":"AMS"}}});
-</script>
-
-<script type="text/x-mathjax-config">
-  MathJax.Hub.Queue(function() {
-    var all = MathJax.Hub.getAllJax(), i;
-    for(i=0; i < all.length; i += 1) {
-      all[i].SourceElement().parentNode.className += ' has-jax';
-    }
-  });
-</script>
-
-<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js">
-</script>
-<!-- End: Injected MathJax -->
-<!-- hexo-inject:end -->
-</body>
+    </body>
 </html>
 
 
