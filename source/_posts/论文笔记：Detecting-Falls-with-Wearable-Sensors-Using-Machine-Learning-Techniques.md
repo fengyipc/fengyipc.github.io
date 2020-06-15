@@ -4,9 +4,10 @@ tags:
   - Fall Detection
   - Machine Learning
   - Deep Learning
+categories: Machine Learning
 abbrlink: 1521
 mathjax: true
-date:
+date: 2019-05-28 01:12:21
 ---
 
 ## 数据集

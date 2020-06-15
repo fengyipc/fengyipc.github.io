@@ -81,8 +81,11 @@ Plugins:
 ## Docs: https://hexo.io/docs/deployment.html
 deploy:
   type: git  
-  repository: https://github.com/fengyipc/fengyipc.github.io.git  
+  repository:
+    github: https://github.com/fengyipc/fengyipc.github.io.git
+    coding: https://e.coding.net:pengch0821/fengyi_pc.git
   branch: master
+
 
 jsonContent:
   meta: true

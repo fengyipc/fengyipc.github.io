@@ -2,7 +2,9 @@
 title: '基于Prometheus + Grafana + JsonDatasource 搭建云资源监控系统'
 tags:
   - 实习总结
-  
+  - 运维
+  - 集群监控
+categories: 实习总结
 abbrlink: 23692
 date: 2020-06-15 18:20:00
 ---
