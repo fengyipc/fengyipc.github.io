@@ -4,7 +4,7 @@ tags:
   - Fall Detection
   - Machine Learning
   - Deep Learning
-categories: Machine Learning
+categories: 机器学习
 abbrlink: 5812
 date: 2019-05-29 02:22:30
 ---

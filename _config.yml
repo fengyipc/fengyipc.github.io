@@ -13,7 +13,7 @@ timezone:
 
 # URL
 ## If your site is put in a subdirectory, set url as 'http://yoursite.com/child' and root as '/child/'
-url: https://fengyipc.github.io/
+url: https://www.pengchen.top
 root: /
 permalink: posts/:abbrlink/
 permalink_defaults:
@@ -82,8 +82,8 @@ Plugins:
 deploy:
   type: git  
   repository:
-    github: https://github.com/fengyipc/fengyipc.github.io.git
-    coding: https://e.coding.net:pengch0821/fengyi_pc.git
+    github: https://github.com/fengyipc/fengyipc.github.io.git,master
+    coding: git@e.coding.net:pengch0821/pengch0821/pengchen.coding.me.git,master
   branch: master
 
 
@@ -105,3 +105,8 @@ jsonContent:
     excerpt: false
     categories: true
     tags: true
+
+sitemap:
+  path: sitemap.xml
+baidusitemap:
+  path: baidusitemap.xml
