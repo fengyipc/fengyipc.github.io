@@ -8,6 +8,7 @@ tags:
 categories: 实习总结
 abbrlink: 23692
 date: 2020-06-15 18:20:00
+abstract: 为了提升公司AI平台计算资源的利用效率，需要实现AI平台计算资源、应用数据的实时统计，故提出基于Prometheus+Grafana搭建资源监控平台。由于公司云资源分布在不同集群，需引入多个Prometheus DataSource，而Grafana对于多DataSource数据整合分析不具有很好的原生支持。所以使用Json Datasource插件，自行建立基于GO+Gin框架的后端，调用Prometheus Http接口，对不同集群数据进行整合计算，提供Http接口给Grafana平台调用以供展示。本文主要总结在实习过程中使用的上述组件的部分功能，并非对相关技术全面概览。
 ---
 
 　　为了提升公司AI平台计算资源的利用效率，需要实现AI平台计算资源、应用数据的实时统计，故提出基于Prometheus+Grafana搭建资源监控平台。由于公司云资源分布在不同集群，需引入多个Prometheus DataSource，而Grafana对于多DataSource数据整合分析不具有很好的原生支持。所以使用Json Datasource插件，自行建立基于GO+Gin框架的后端，调用Prometheus Http接口，对不同集群数据进行整合计算，提供Http接口给Grafana平台调用以供展示。
