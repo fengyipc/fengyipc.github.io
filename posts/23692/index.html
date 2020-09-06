@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+    <!-- title -->
+
+
+
+
+<!-- keywords -->
+
+
+
+
+<head>
+    <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" >
+    <meta name="author" content="枫逸">
+    <meta name="renderer" content="webkit">
+    <meta name="copyright" content="枫逸">
+    
+    <meta name="keywords" content="Maple's Story,枫逸">
+    
+    <meta name="description" content="不要温和地走进那个良夜。">
+    <meta name="description" content="为了提升公司AI平台计算资源的利用效率，需要实现AI平台计算资源、应用数据的实时统计，故提出基于Prometheus+Grafana搭建资源监控平台。由于公司云资源分布在不同集群，需引入多个Prometheus DataSource，而Grafana对于多DataSource数据整合分析不具有很好的原生支持。所以使用Json Datasource插件，自行建立基于GO+Gin框架的后端，调用P">
+<meta property="og:type" content="article">
+<meta property="og:title" content="实习总结：基于Prometheus + Grafana + JsonDatasource 搭建云资源监控系统">
+<meta property="og:url" content="https://www.pengchen.top/posts/23692/index.html">
+<meta property="og:site_name" content="Maple&#39;s Story">
+<meta property="og:description" content="为了提升公司AI平台计算资源的利用效率，需要实现AI平台计算资源、应用数据的实时统计，故提出基于Prometheus+Grafana搭建资源监控平台。由于公司云资源分布在不同集群，需引入多个Prometheus DataSource，而Grafana对于多DataSource数据整合分析不具有很好的原生支持。所以使用Json Datasource插件，自行建立基于GO+Gin框架的后端，调用P">
+<meta property="og:image" content="https://www.pengchen.top/images/fig11.jpg">
+<meta property="og:image" content="https://www.pengchen.top/images/fig12.png">
+<meta property="og:image" content="https://www.pengchen.top/images/fig13.png">
+<meta property="og:image" content="https://www.pengchen.top/images/fig14.png">
+<meta property="og:image" content="https://www.pengchen.top/images/fig15.png">
+<meta property="og:image" content="https://www.pengchen.top/images/fig16.png">
+<meta property="og:image" content="https://www.pengchen.top/images/fig17.png">
+<meta property="article:published_time" content="2020-06-15T10:20:00.000Z">
+<meta property="article:modified_time" content="2020-09-04T17:44:05.368Z">
+<meta property="article:author" content="枫逸">
+<meta property="article:tag" content="实习总结">
+<meta property="article:tag" content="运维">
+<meta property="article:tag" content="集群监控">
+<meta property="article:tag" content="GO语言">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://www.pengchen.top/images/fig11.jpg">
+    <meta http-equiv="Cache-control" content="no-cache">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    
+    <title>实习总结：基于Prometheus + Grafana + JsonDatasource 搭建云资源监控系统 · Maple&#39;s Story</title>
+    <style type="text/css">
+    @font-face {
+        font-family: 'Oswald-Regular';
+        src: url("/font/Oswald-Regular.ttf");
+    }
+
+    body {
+        margin: 0;
+    }
+
+    header,
+    footer,
+    .back-top,
+    .sidebar,
+    .container,
+    .site-intro-meta,
+    .toc-wrapper {
+        display: none;
+    }
+
+    .site-intro {
+        position: relative;
+        z-index: 3;
+        width: 100%;
+        /* height: 50vh; */
+        overflow: hidden;
+    }
+
+    .site-intro-placeholder {
+        position: absolute;
+        z-index: -2;
+        top: 0;
+        left: 0;
+        width: calc(100% + 300px);
+        height: 100%;
+        background: repeating-linear-gradient(-45deg, #444 0, #444 80px, #333 80px, #333 160px);
+        background-position: center center;
+        transform: translate3d(-226px, 0, 0);
+        animation: gradient-move 2.5s ease-out 0s infinite;
+    }
+
+    @keyframes gradient-move {
+        0% {
+            transform: translate3d(-226px, 0, 0);
+        }
+        100% {
+            transform: translate3d(0, 0, 0);
+        }
+    }
+
+</style>
+
+    <link rel="preload" href= "/css/style.css?v=20180824" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+    <link rel="stylesheet" href= "/css/mobile.css?v=20180824" media="(max-width: 980px)">
+    
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.2.5/jquery.fancybox.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+    
+    <!-- /*! loadCSS. [c]2017 Filament Group, Inc. MIT License */
+/* This file is meant as a standalone workflow for
+- testing support for link[rel=preload]
+- enabling async CSS loading in browsers that do not support rel=preload
+- applying rel preload css once loaded, whether supported or not.
+*/ -->
+<script>
+(function( w ){
+	"use strict";
+	// rel=preload support test
+	if( !w.loadCSS ){
+		w.loadCSS = function(){};
+	}
+	// define on the loadCSS obj
+	var rp = loadCSS.relpreload = {};
+	// rel=preload feature support test
+	// runs once and returns a function for compat purposes
+	rp.support = (function(){
+		var ret;
+		try {
+			ret = w.document.createElement( "link" ).relList.supports( "preload" );
+		} catch (e) {
+			ret = false;
+		}
+		return function(){
+			return ret;
+		};
+	})();
+
+	// if preload isn't supported, get an asynchronous load by using a non-matching media attribute
+	// then change that media back to its intended value on load
+	rp.bindMediaToggle = function( link ){
+		// remember existing media attr for ultimate state, or default to 'all'
+		var finalMedia = link.media || "all";
+
+		function enableStylesheet(){
+			link.media = finalMedia;
+		}
+
+		// bind load handlers to enable media
+		if( link.addEventListener ){
+			link.addEventListener( "load", enableStylesheet );
+		} else if( link.attachEvent ){
+			link.attachEvent( "onload", enableStylesheet );
+		}
+
+		// Set rel and non-applicable media type to start an async request
+		// note: timeout allows this to happen async to let rendering continue in IE
+		setTimeout(function(){
+			link.rel = "stylesheet";
+			link.media = "only x";
+		});
+		// also enable media after 3 seconds,
+		// which will catch very old browsers (android 2.x, old firefox) that don't support onload on link
+		setTimeout( enableStylesheet, 3000 );
+	};
+
+	// loop through link elements in DOM
+	rp.poly = function(){
+		// double check this to prevent external calls from running
+		if( rp.support() ){
+			return;
+		}
+		var links = w.document.getElementsByTagName( "link" );
+		for( var i = 0; i < links.length; i++ ){
+			var link = links[ i ];
+			// qualify links to those with rel=preload and as=style attrs
+			if( link.rel === "preload" && link.getAttribute( "as" ) === "style" && !link.getAttribute( "data-loadcss" ) ){
+				// prevent rerunning on link
+				link.setAttribute( "data-loadcss", true );
+				// bind listeners to toggle media back
+				rp.bindMediaToggle( link );
+			}
+		}
+	};
+
+	// if unsupported, run the polyfill
+	if( !rp.support() ){
+		// run once at least
+		rp.poly();
+
+		// rerun poly on an interval until onload
+		var run = w.setInterval( rp.poly, 500 );
+		if( w.addEventListener ){
+			w.addEventListener( "load", function(){
+				rp.poly();
+				w.clearInterval( run );
+			} );
+		} else if( w.attachEvent ){
+			w.attachEvent( "onload", function(){
+				rp.poly();
+				w.clearInterval( run );
+			} );
+		}
+	}
+
+
+	// commonjs
+	if( typeof exports !== "undefined" ){
+		exports.loadCSS = loadCSS;
+	}
+	else {
+		w.loadCSS = loadCSS;
+	}
+}( typeof global !== "undefined" ? global : this ) );
+</script>
+
+    <link rel="icon" href= "/assets/001.ico" />
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/webfontloader@1.6.28/webfontloader.min.js" as="script" />
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js" as="script" />
+    <link rel="preload" href="/scripts/main.js" as="script" />
+    <link rel="preload" as="font" href="/font/Oswald-Regular.ttf" crossorigin>
+    <link rel="preload" as="font" href="https://at.alicdn.com/t/font_327081_1dta1rlogw17zaor.woff" crossorigin>
+    
+    <!-- fancybox -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.2.5/jquery.fancybox.min.js" defer></script>
+    <!-- 百度统计  -->
+    
+    <!-- 谷歌统计  -->
+    
+<meta name="generator" content="Hexo 4.2.1"><!-- hexo-inject:begin --><!-- hexo-inject:end --></head>
+
+    
+        <body class="post-body">
+    
+    
+<!-- hexo-inject:begin --><!-- hexo-inject:end --><header class="header">
+
+    <div class="read-progress"></div>
+    <div class="header-sidebar-menu">&#xe775;</div>
+    <!-- post页的toggle banner  -->
+    
+    <div class="banner">
+            <div class="blog-title">
+                <a href="/" >Maple&#39;s Story</a>
+            </div>
+            <div class="post-title">
+                <a href="#" class="post-name">实习总结：基于Prometheus + Grafana + JsonDatasource 搭建云资源监控系统</a>
+            </div>
+    </div>
+    
+    <a class="home-link" href=/>Maple's Story</a>
+</header>
+    <div class="wrapper">
+        <div class="site-intro" style="
+
+
+
+
+
+
+
+height:50vh;
+">
+    
+    <!-- 主页  -->
+    
+    
+    <!-- 404页  -->
+            
+    <div class="site-intro-placeholder"></div>
+    <div class="site-intro-img" style="background-image: url(https://source.unsplash.com/random)"></div>
+    <div class="site-intro-meta">
+        <!-- 标题  -->
+        <h1 class="intro-title">
+            <!-- 主页  -->
+            
+            实习总结：基于Prometheus + Grafana + JsonDatasource 搭建云资源监控系统
+            <!-- 404 -->
+            
+        </h1>
+        <!-- 副标题 -->
+        <p class="intro-subtitle">
+            <!-- 主页副标题  -->
+            
+            
+            <!-- 404 -->
+            
+        </p>
+        <!-- 文章页meta -->
+        
+            <div class="post-intros">
+                <!-- 文章页标签  -->
+                
+                    <div class= post-intro-tags >
+    
+        <a class="post-tag" href="javascript:void(0);" data-tags = "实习总结">实习总结</a>
+    
+        <a class="post-tag" href="javascript:void(0);" data-tags = "运维">运维</a>
+    
+        <a class="post-tag" href="javascript:void(0);" data-tags = "集群监控">集群监控</a>
+    
+        <a class="post-tag" href="javascript:void(0);" data-tags = "GO语言">GO语言</a>
+    
+</div>
+                
+                
+                    <div class="post-intro-read">
+                        <span>字数统计: <span class="post-count word-count">2.6k</span>阅读时长: <span class="post-count reading-time">10 min</span></span>
+                    </div>
+                
+                <div class="post-intro-meta">
+                    <span class="post-intro-calander iconfont-archer">&#xe676;</span>
+                    <span class="post-intro-time">2020/06/15</span>
+                    
+                    <span id="busuanzi_container_page_pv" class="busuanzi-pv">
+                        <span class="iconfont-archer">&#xe602;</span>
+                        <span id="busuanzi_value_page_pv"></span>
+                    </span>
+                    
+                    <span class="shareWrapper">
+                        <span class="iconfont-archer shareIcon">&#xe71d;</span>
+                        <span class="shareText">Share</span>
+                        <ul class="shareList">
+                            <li class="iconfont-archer share-qr" data-type="qr">&#xe75b;
+                                <div class="share-qrcode"></div>
+                            </li>
+                            <li class="iconfont-archer" data-type="weibo">&#xe619;</li>
+                            <li class="iconfont-archer" data-type="qzone">&#xe62e;</li>
+                            <li class="iconfont-archer" data-type="twitter">&#xe634;</li>
+                            <li class="iconfont-archer" data-type="facebook">&#xe67a;</li>
+                        </ul>
+                    </span>
+                </div>
+            </div>
+        
+    </div>
+</div>
+        <script>
+ 
+  // get user agent
+  var browser = {
+    versions: function () {
+      var u = window.navigator.userAgent;
+      return {
+        userAgent: u,
+        trident: u.indexOf('Trident') > -1, //IE内核
+        presto: u.indexOf('Presto') > -1, //opera内核
+        webKit: u.indexOf('AppleWebKit') > -1, //苹果、谷歌内核
+        gecko: u.indexOf('Gecko') > -1 && u.indexOf('KHTML') == -1, //火狐内核
+        mobile: !!u.match(/AppleWebKit.*Mobile.*/), //是否为移动终端
+        ios: !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/), //ios终端
+        android: u.indexOf('Android') > -1 || u.indexOf('Linux') > -1, //android终端或者uc浏览器
+        iPhone: u.indexOf('iPhone') > -1 || u.indexOf('Mac') > -1, //是否为iPhone或者安卓QQ浏览器
+        iPad: u.indexOf('iPad') > -1, //是否为iPad
+        webApp: u.indexOf('Safari') == -1, //是否为web应用程序，没有头部与底部
+        weixin: u.indexOf('MicroMessenger') == -1, //是否为微信浏览器
+        uc: u.indexOf('UCBrowser') > -1 //是否为android下的UC浏览器
+      };
+    }()
+  }
+  console.log("userAgent:" + browser.versions.userAgent);
+
+  // callback
+  function fontLoaded() {
+    console.log('font loaded');
+    if (document.getElementsByClassName('site-intro-meta')) {
+      document.getElementsByClassName('intro-title')[0].classList.add('intro-fade-in');
+      document.getElementsByClassName('intro-subtitle')[0].classList.add('intro-fade-in');
+      var postIntros = document.getElementsByClassName('post-intros')[0]
+      if (postIntros) {
+        postIntros.classList.add('post-fade-in');
+      }
+    }
+  }
+
+  // UC不支持跨域，所以直接显示
+  function asyncCb(){
+    if (browser.versions.uc) {
+      console.log("UCBrowser");
+      fontLoaded();
+    } else {
+      WebFont.load({
+        custom: {
+          families: ['Oswald-Regular']
+        },
+        loading: function () {  //所有字体开始加载
+          // console.log('loading');
+        },
+        active: function () {  //所有字体已渲染
+          fontLoaded();
+        },
+        inactive: function () { //字体预加载失败，无效字体或浏览器不支持加载
+          console.log('inactive: timeout');
+          fontLoaded();
+        },
+        timeout: 5000 // Set the timeout to two seconds
+      });
+    }
+  }
+
+  function asyncErr(){
+    console.warn('script load from CDN failed, will load local script')
+  }
+
+  // load webfont-loader async, and add callback function
+  function async(u, cb, err) {
+    var d = document, t = 'script',
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (cb) { o.addEventListener('load', function (e) { cb(null, e); }, false); }
+    if (err) { o.addEventListener('error', function (e) { err(null, e); }, false); }
+    s.parentNode.insertBefore(o, s);
+  }
+
+  var asyncLoadWithFallBack = function(arr, success, reject) {
+      var currReject = function(){
+        reject()
+        arr.shift()
+        if(arr.length)
+          async(arr[0], success, currReject)
+        }
+
+      async(arr[0], success, currReject)
+  }
+
+  asyncLoadWithFallBack([
+    "https://cdn.jsdelivr.net/npm/webfontloader@1.6.28/webfontloader.min.js", 
+    "https://cdn.bootcss.com/webfont/1.6.28/webfontloader.js",
+    "/lib/webfontloader.min.js"
+  ], asyncCb, asyncErr)
+</script>        
+        <img class="loading" src="/assets/loading.svg" style="display: block; margin: 6rem auto 0 auto; width: 6rem; height: 6rem;" />
+        <div class="container container-unloaded">
+            <main class="main post-page">
+    <article class="article-entry">
+        <p>　　为了提升公司AI平台计算资源的利用效率，需要实现AI平台计算资源、应用数据的实时统计，故提出基于Prometheus+Grafana搭建资源监控平台。由于公司云资源分布在不同集群，需引入多个Prometheus DataSource，而Grafana对于多DataSource数据整合分析不具有很好的原生支持。所以使用Json Datasource插件，自行建立基于GO+Gin框架的后端，调用Prometheus Http接口，对不同集群数据进行整合计算，提供Http接口给Grafana平台调用以供展示。</p>
+<p>　　以下主要总结在实习过程中使用的上述组件的部分功能，并非对相关技术全面概览。</p>
+<hr>
+<h1 id="Prometheus"><a href="#Prometheus" class="headerlink" title="Prometheus"></a>Prometheus</h1><p>　　Prometheus 是一款基于<strong>时序数据库</strong>的开源监控告警系统，目前已经广泛用于 Kubernetes 集群的监控系统中。Prometheus 的开发者和用户社区非常活跃，它现在是一个独立的开源项目，可以独立于任何公司进行维护。</p>
+<p><strong>主要特性</strong></p>
+<ul>
+<li>多维度数据模型</li>
+<li>方便的部署和维护</li>
+<li>灵活的数据采集</li>
+<li>强大的查询语言</li>
+</ul>
+<p>　　Prometheus 数据采集方式也非常灵活。要采集目标的监控数据，首先需要在目标处安装数据采集组件，这被称之为 Exporter，它会在目标处收集监控数据，并暴露出一个 HTTP 接口供 Prometheus 查询。</p>
+<p>　　Prometheus Server 直接从监控目标中或者间接通过推送网关来拉取监控指标，它在本地存储所有抓取到的样本数据，并对此数据执行一系列规则，以汇总和记录现有数据的新时间序列或生成告警。可以通过 Grafana 或者其他工具来实现监控数据的可视化。</p>
+<h2 id="Prometheus-架构"><a href="#Prometheus-架构" class="headerlink" title="Prometheus 架构"></a>Prometheus 架构</h2><p><img src="/images/fig11.jpg" alt="" title="Prometheus 架构"></p>
+<h2 id="数据模型"><a href="#数据模型" class="headerlink" title="数据模型"></a>数据模型</h2><p>　　Prometheus 所有采集的监控数据均以指标（metric）的形式保存在内置的时间序列数据库当中：属于同一指标名称，同一标签集合的、有时间戳标记的数据流。除了存储的时间序列，Prometheus 还可以根据查询请求产生临时的、衍生的时间序列作为返回结果。</p>
+<h3 id="样本"><a href="#样本" class="headerlink" title="样本"></a>样本</h3><p>　　在时间序列中的每一个点称为一个样本（sample),由三部分组成：</p>
+<ul>
+<li>指标（metric）：指标名称和描述当前样本特征的 labelsets</li>
+<li>时间戳（timestamp）：一个精确到毫秒的时间戳</li>
+<li>样本值（value）： 一个 folat64 的浮点型数据表示当前样本的值</li>
+</ul>
+<h3 id="表示方式"><a href="#表示方式" class="headerlink" title="表示方式"></a>表示方式</h3><p><code>&lt;metric name&gt;{&lt;label name&gt;=&lt;label value&gt;, ...}</code></p>
+<h2 id="查询语句PromQL"><a href="#查询语句PromQL" class="headerlink" title="查询语句PromQL"></a>查询语句PromQL</h2><p>　　Prometheus 提供了一种功能丰富的查询语言 PromQL，允许用户实时选择和汇聚时间序列数据。通过编写相应的表达式可以返回以下四种数据类型：</p>
+<ul>
+<li>瞬时向量（Instant vector）</li>
+<li>区间向量（Range vector）</li>
+<li>标量（Scalar）</li>
+<li>字符串（String）</li>
+</ul>
+<p>　　具体 PromQL 用法可查询<a href="https://prometheus.fuckcloudnative.io/di-san-zhang-prometheus/di-4-jie-cha-xun/basics" target="_blank" rel="noopener">Prometheus官方文档</a></p>
+<h2 id="HTTP-API"><a href="#HTTP-API" class="headerlink" title="HTTP API"></a>HTTP API</h2><p>　　Prometheus 同样提供 HTTP API 调用接口，通过GET请求带入PromQL表达式、时间戳、时间间隔等参数，返回JSON格式的监控数据</p>
+<h3 id="API响应格式"><a href="#API响应格式" class="headerlink" title="API响应格式"></a>API响应格式</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  &quot;status&quot;: &quot;success&quot; | &quot;error&quot;,</span><br><span class="line">  &quot;data&quot;: &lt;data&gt;,</span><br><span class="line"></span><br><span class="line">  &#x2F;&#x2F; Only set if status is &quot;error&quot;. The data field may still hold</span><br><span class="line">  &#x2F;&#x2F; additional data.</span><br><span class="line">  &quot;errorType&quot;: &quot;&lt;string&gt;&quot;,</span><br><span class="line">  &quot;error&quot;: &quot;&lt;string&gt;&quot;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="表达式查询"><a href="#表达式查询" class="headerlink" title="表达式查询"></a>表达式查询</h3><p>　　通过 HTTP API 我们可以分别通过 /api/v1/query 和 /api/v1/query_range 查询 PromQL 表达式当前或者一定时间范围内的计算结果。</p>
+<h4 id="瞬时数据查询"><a href="#瞬时数据查询" class="headerlink" title="瞬时数据查询"></a>瞬时数据查询</h4><p>查询语句：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">GET &#x2F;api&#x2F;v1&#x2F;query?</span><br><span class="line">	query&#x3D;&lt;string&gt; &amp;</span><br><span class="line">	time&#x3D;&lt;rfc3339 | unix_timestamp&gt;&amp;timeout&#x3D;&lt;duration&gt;</span><br></pre></td></tr></table></figure></p>
+<p>返回数据格式：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">	&quot;status&quot; : &quot;success&quot;,</span><br><span class="line">	&quot;data&quot; : &#123;</span><br><span class="line">		&quot;resultType&quot;: &quot;matrix&quot; | &quot;vector&quot; | &quot;scalar&quot; | &quot;string&quot;,</span><br><span class="line">		&quot;result&quot;: &lt;value&gt;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<h4 id="区间数据查询"><a href="#区间数据查询" class="headerlink" title="区间数据查询"></a>区间数据查询</h4><p>查询语句：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">GET &#x2F;api&#x2F;v1&#x2F;query_range?</span><br><span class="line">	query&#x3D;&lt;string&gt; &amp;</span><br><span class="line">	start&#x3D;&lt;rfc3339 | unix_timestamp&gt; &amp;</span><br><span class="line">	end&#x3D;&lt;rfc3339 | unix_timestamp&gt; &amp;</span><br><span class="line">	step&#x3D;&lt;duration | float&gt; &amp;</span><br><span class="line">	timeout&#x3D;&lt;duration&gt;</span><br></pre></td></tr></table></figure></p>
+<p>返回数据格式：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">	&quot;status&quot; : &quot;success&quot;,</span><br><span class="line">  &quot;data&quot; : &#123;</span><br><span class="line">  	&quot;resultType&quot; : &quot;matrix&quot;,</span><br><span class="line">  	&quot;result&quot; : [</span><br><span class="line">  	&#123;</span><br><span class="line">  		&quot;metric&quot;: &#123; &quot;&lt;label_name&gt;&quot;: &quot;&lt;label_value&gt;&quot;, ... &#125;,</span><br><span class="line">  		&quot;values&quot;: [ [ &lt;unix_time&gt;, &quot;&lt;sample_value&gt;&quot; ], ... ]</span><br><span class="line">  	&#125;,</span><br><span class="line">  	...</span><br><span class="line">  	]</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<hr>
+<h1 id="Grafana"><a href="#Grafana" class="headerlink" title="Grafana"></a>Grafana</h1><p>　　Grafana是一款用Go语言开发的通用的开源数据可视化工具，可以做数据监控和数据统计，带有告警功能。“通用”意味着Grafana不仅仅适用于展示Prometheus下的监控数据，也同样适用于一些其他的数据可视化需求。<br>　　其主要特点如下：</p>
+<ul>
+<li>可视化：快速灵活的客户端图表，面板插件有许多不同方式的可视化指标和日志，官方库中具有丰富的仪表盘插件，比如热图、折线图、图表等多种展示方式</li>
+<li>报警：以可视方式定义最重要指标的警报规则，Grafana将不断计算并发送通知，在数据达到阈值时通过Slack、PagerDuty等获得通知</li>
+<li>混合展示：在同一图表中混合使用不同的数据源，可以基于每个查询指定数据源，甚至自定义数据源</li>
+<li>注释：使用来自不同数据源的丰富事件注释图表，将鼠标悬停在事件上会显示完整的事件元数据和标记</li>
+<li>过滤器：Ad-hoc过滤器允许动态创建新的键/值过滤器，这些过滤器会自动应用于使用该数据源的所有查询</li>
+</ul>
+<h2 id="数据源（Data-Source）"><a href="#数据源（Data-Source）" class="headerlink" title="数据源（Data Source）"></a>数据源（Data Source）</h2><p>　　对于Grafana而言，Prometheus这类为其提供数据的对象均称为数据源（Data Source）。目前，Grafana官方提供了对： Prometheus, Graphite, InfluxDB, OpenTSDB等大量数据源的支持。对于Grafana管理员而言，只需要将这些对象以数据源的形式添加到Grafana中，Grafana便可以轻松的实现对这些数据的可视化工作。<br>　　与此同时，Grafana还支持使用第三方数据源插件导入数据，本次工作即通过使用 JSON 数据源插件引入后端自行处理过的数据进行展示。</p>
+<p><img src="/images/fig12.png" title="Grafana官方支持的部分数据源" height="650" style="display: inline-block"><br><img src="/images/fig13.png" title="部分第三方插件数据源" height="650" style="display: inline-block"></p>
+<h2 id="仪表盘（Dashboard）"><a href="#仪表盘（Dashboard）" class="headerlink" title="仪表盘（Dashboard）"></a>仪表盘（Dashboard）</h2><p>　　通过数据源定义好可视化的数据来源之后，对于用户而言最重要的事情就是实现数据的可视化。在Grafana中，我们通过Dashboard来组织和管理我们的数据可视化图表：<br><img src="/images/fig14.png" alt="" title="Grafana Dashboard"></p>
+<h2 id="面板（Panel）"><a href="#面板（Panel）" class="headerlink" title="面板（Panel）"></a>面板（Panel）</h2><p>　　Panel是Grafana中最基本的可视化单元。每一种类型的面板都提供了相应的查询编辑器(Query Editor)，让用户可以从不同的数据源（如Prometheus）中查询出相应的监控数据，并且以可视化的方式展现。例如，如果以Prometheus作为数据源，那在Query Editor中，我们实际上使用的是PromQL，而Panel则会负责从特定的Prometheus中查询出相应的数据，并且将其可视化。由于每个Panel是完全独立的，因此在一个Dashboard中，往往可能会包含来自多个Data Source的数据。<br>　　在本次工作中，由于使用自行设计的后端接口，数据查询语句为自定义的JSON格式。</p>
+<p><img src="/images/fig15.png" alt="" title="官方支持的Panel类型（并支持插件扩展）"><br><img src="/images/fig16.png" alt="" title="查询数据源与查询语句示例"></p>
+<h1 id="JSON-Datasource"><a href="#JSON-Datasource" class="headerlink" title="JSON Datasource"></a>JSON Datasource</h1><p>　　一个用于Grafana的第三方JSON Datasource插件，通过编写后端实现该插件要求的HTTP API，可以实现以JSON格式向Grafana发送自定义的Datasource</p>
+<p><img src="/images/fig17.png" alt="" title="Json Data Sources"></p>
+<h2 id="API"><a href="#API" class="headerlink" title="API"></a>API</h2><p>　　为使该插件正常工作，后端必须实现以下API：</p>
+<ul>
+<li><code>GET /</code> ：用于测试与datasource之间的连接情况</li>
+<li><code>POST /search</code> ：根据请求字段返回可用的metrics</li>
+<li><code>POST /query</code> ：根据输入的查询语句返回对应的metrics</li>
+<li><code>POST /annotations</code> ：返回注释（本次工作实际未实现，没有影响功能，故似乎为可选实现）</li>
+</ul>
+<p>　　可选实现：</p>
+<ul>
+<li><code>POST /tag-key</code> ：根据ad-hoc过滤器返回对应的tag-keys</li>
+<li><code>POST /tag-values</code> ：根据ad-hoc过滤器返回对应的tag-values</li>
+</ul>
+<h2 id="API-具体格式"><a href="#API-具体格式" class="headerlink" title="API 具体格式"></a>API 具体格式</h2><h3 id="search"><a href="#search" class="headerlink" title="search"></a>search</h3><p><strong>request:</strong><br>Variables &gt; New/Edit page 示例：<br><code>{ &quot;target&quot;: &quot;query field value&quot; }</code><br>Panel &gt; Queries page 示例：<br><code>{ &quot;type&quot;: &quot;timeseries&quot;, &quot;target&quot;: &quot;upper_50&quot; }</code></p>
+<p><strong>response:</strong><br>array返回示例：<br><code>[&quot;upper_25&quot;,&quot;upper_50&quot;,&quot;upper_75&quot;,&quot;upper_90&quot;,&quot;upper_95&quot;]</code><br>map返回示例<br><code>[ { &quot;text&quot;: &quot;upper_25&quot;, &quot;value&quot;: 1}, { &quot;text&quot;: &quot;upper_75&quot;, &quot;value&quot;: 2} ]</code></p>
+<h3 id="query"><a href="#query" class="headerlink" title="query"></a>query</h3><p><strong>request:</strong><br>timeseries 示例：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">  &quot;panelId&quot;: 1,</span><br><span class="line">  &quot;range&quot;: &#123;</span><br><span class="line">    &quot;from&quot;: &quot;2016-10-31T06:33:44.866Z&quot;,</span><br><span class="line">    &quot;to&quot;: &quot;2016-10-31T12:33:44.866Z&quot;,</span><br><span class="line">    &quot;raw&quot;: &#123;</span><br><span class="line">      &quot;from&quot;: &quot;now-6h&quot;,</span><br><span class="line">      &quot;to&quot;: &quot;now&quot;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;,</span><br><span class="line">  &quot;rangeRaw&quot;: &#123;</span><br><span class="line">    &quot;from&quot;: &quot;now-6h&quot;,</span><br><span class="line">    &quot;to&quot;: &quot;now&quot;</span><br><span class="line">  &#125;,</span><br><span class="line">  &quot;interval&quot;: &quot;30s&quot;,</span><br><span class="line">  &quot;intervalMs&quot;: 30000,</span><br><span class="line">  &quot;maxDataPoints&quot;: 550,</span><br><span class="line">  &quot;targets&quot;: [</span><br><span class="line">     &#123; &quot;target&quot;: &quot;Packets&quot;, &quot;refId&quot;: &quot;A&quot;, &quot;type&quot;: &quot;timeseries&quot;, &quot;data&quot;: &#123; &quot;additional&quot;: &quot;optional json&quot; &#125; &#125;,</span><br><span class="line">     &#123; &quot;target&quot;: &quot;Errors&quot;, &quot;refId&quot;: &quot;B&quot;, &quot;type&quot;: &quot;timeseries&quot; &#125;</span><br><span class="line">  ],</span><br><span class="line">  &quot;adhocFilters&quot;: [&#123;</span><br><span class="line">    &quot;key&quot;: &quot;City&quot;,</span><br><span class="line">    &quot;operator&quot;: &quot;&#x3D;&quot;,</span><br><span class="line">    &quot;value&quot;: &quot;Berlin&quot;</span><br><span class="line">  &#125;]</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></p>
+<p>Additional data：<br>request可携带额外的JSON格式的数据作为查询条件，格式如下：<br><code>{ &quot;additional&quot;: &quot;optional json&quot; }</code><br>并将放置在request body 的<code>target-data</code>中，示例如下：<br><code>{ &quot;target&quot;: &quot;upper_50&quot;, &quot;refId&quot;: &quot;A&quot;, &quot;type&quot;: &quot;timeseries&quot;, &quot;data&quot;: { &quot;additional&quot;: &quot;optional json&quot; } }</code></p>
+<p><strong>response:</strong><br>metric类型选择为timeseries 返回示例： (metric类型为float，unix时间戳类型为milliseconds)<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">[</span><br><span class="line">  &#123;</span><br><span class="line">    &quot;target&quot;:&quot;pps in&quot;,</span><br><span class="line">    &quot;datapoints&quot;:[</span><br><span class="line">      [622,1450754160000],</span><br><span class="line">      [365,1450754220000]</span><br><span class="line">    ]</span><br><span class="line">  &#125;,</span><br><span class="line">  &#123;</span><br><span class="line">    &quot;target&quot;:&quot;pps out&quot;,</span><br><span class="line">    &quot;datapoints&quot;:[</span><br><span class="line">      [861,1450754160000],</span><br><span class="line">      [767,1450754220000]</span><br><span class="line">    ]</span><br><span class="line">  &#125;,</span><br><span class="line">  &#123;</span><br><span class="line">    &quot;target&quot;:&quot;errors out&quot;,</span><br><span class="line">    &quot;datapoints&quot;:[</span><br><span class="line">      [861,1450754160000],</span><br><span class="line">      [767,1450754220000]</span><br><span class="line">    ]</span><br><span class="line">  &#125;,</span><br><span class="line">  &#123;</span><br><span class="line">    &quot;target&quot;:&quot;errors in&quot;,</span><br><span class="line">    &quot;datapoints&quot;:[</span><br><span class="line">      [861,1450754160000],</span><br><span class="line">      [767,1450754220000]</span><br><span class="line">    ]</span><br><span class="line">  &#125;</span><br><span class="line">]</span><br></pre></td></tr></table></figure></p>
+<p>metric类型选择为table 返回示例：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">[</span><br><span class="line">  &#123;</span><br><span class="line">    &quot;columns&quot;:[</span><br><span class="line">      &#123;&quot;text&quot;:&quot;Time&quot;,&quot;type&quot;:&quot;time&quot;&#125;,</span><br><span class="line">      &#123;&quot;text&quot;:&quot;Country&quot;,&quot;type&quot;:&quot;string&quot;&#125;,</span><br><span class="line">      &#123;&quot;text&quot;:&quot;Number&quot;,&quot;type&quot;:&quot;number&quot;&#125;</span><br><span class="line">    ],</span><br><span class="line">    &quot;rows&quot;:[</span><br><span class="line">      [1234567,&quot;SE&quot;,123],</span><br><span class="line">      [1234567,&quot;DE&quot;,231],</span><br><span class="line">      [1234567,&quot;US&quot;,321]</span><br><span class="line">    ],</span><br><span class="line">    &quot;type&quot;:&quot;table&quot;</span><br><span class="line">  &#125;</span><br><span class="line">]</span><br></pre></td></tr></table></figure></p>
+<p><em>其余API接口本次未使用，便不再记录</em></p>
+<h1 id="参考学习资料"><a href="#参考学习资料" class="headerlink" title="参考学习资料"></a>参考学习资料</h1><blockquote>
+<p><a href="https://prometheus.fuckcloudnative.io/" target="_blank" rel="noopener">Prometheus中文文档</a><br><a href="https://www.aneasystone.com/archives/2018/11/prometheus-in-action.html" target="_blank" rel="noopener">实战 Prometheus 搭建监控系统</a><br><a href="https://www.cnblogs.com/imyalost/p/9873641.html" target="_blank" rel="noopener">可视化工具Grafana：简介及安装</a><br><a href="https://github.com/simPod/grafana-json-datasource" target="_blank" rel="noopener">JSON Datasource – a generic backend datasource</a></p>
+</blockquote>
+<p><em>GO后端实现方案与GO学习路径再一同总结</em></p>
+
+    </article>
+    <!-- license  -->
+    
+        <div class="license-wrapper">
+            <p>原文作者：<a href="https://www.pengchen.top">枫逸</a>
+            <p>原文链接：<a href="https://www.pengchen.top/posts/23692/">https://www.pengchen.top/posts/23692/</a>
+            <p>发表日期：<a href="https://www.pengchen.top/posts/23692/">June 15th 2020, 6:20:00 pm</a>
+            <p>更新日期：<a href="https://www.pengchen.top/posts/23692/">September 5th 2020, 1:44:05 am</a>
+            <p>版权声明：本文采用<a rel="license noopener" href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank">知识共享署名-非商业性使用 4.0 国际许可协议</a>进行许可</p>
+        </div>
+    
+    <!-- paginator  -->
+    <ul class="post-paginator">
+        <li class="next">
+            
+                <div class="nextSlogan">Next Post</div>
+                <a href= "/posts/23611/" title= "学习笔记：InnoDB存储引擎 索引与算法 （一）">
+                    <div class="nextTitle">学习笔记：InnoDB存储引擎 索引与算法 （一）</div>
+                </a>
+            
+        </li>
+        <li class="previous">
+            
+                <div class="prevSlogan">Previous Post</div>
+                <a href= "/posts/19531/" title= "学习笔记：Redis 入门指南">
+                    <div class="prevTitle">学习笔记：Redis 入门指南</div>
+                </a>
+            
+        </li>
+    </ul>
+    <!-- 评论插件 -->
+    <!-- 来必力City版安装代码 -->
+
+    <div id="lv-container" data-id="city" data-uid= fengyi_pc@foxmail.com>
+        <script type="text/javascript">
+            (function (d, s) {
+                var j, e = d.getElementsByTagName(s)[0];
+                if (typeof LivereTower === 'function') { return; }
+                j = d.createElement(s);
+                j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+                j.async = true;
+
+                e.parentNode.insertBefore(j, e);
+            })(document, 'script');
+        </script>
+        <noscript>为正常使用来必力评论功能请激活JavaScript</noscript>
+    </div>
+
+<!-- City版安装代码已完成 -->
+    
+    
+    <!-- gitalk评论 -->
+
+    <!-- utteranc评论 -->
+
+    <!-- partial('_partial/comment/changyan') -->
+    <!--PC版-->
+
+
+    
+    
+
+    <!-- 评论 -->
+    
+</main>
+            <!-- profile -->
+            
+        </div>
+        <footer class="footer footer-unloaded">
+    <!-- social  -->
+    
+    <div class="social">
+        
+    
+        
+            
+                <a href="mailto:fengyi_pc@foxmail.com" class="iconfont-archer email" title=email ></a>
+            
+        
+    
+        
+            
+                <a href="https://github.com/fengyipc" class="iconfont-archer github" target="_blank" title=github></a>
+            
+        
+    
+        
+            
+                <span class="iconfont-archer wechat" title=wechat>
+                  
+                  <img class="profile-qr" src="/assets/mmqrcode.png" />
+                </span>
+            
+        
+    
+        
+            
+                <span class="iconfont-archer qq" title=qq>
+                  
+                  <img class="profile-qr" src="/assets/qqqrcode.jpg" />
+                </span>
+            
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+
+    </div>
+    
+    <!-- powered by Hexo  -->
+    <div class="copyright">
+        <span id="hexo-power">Powered by <a href="https://hexo.io/" target="_blank">Hexo</a></span><span class="iconfont-archer power">&#xe635;</span><span id="theme-info">theme <a href="https://github.com/fi3ework/hexo-theme-archer" target="_blank">Archer</a></span>
+    </div>
+    <!-- 不蒜子  -->
+    
+    <div class="busuanzi-container">
+    
+     
+    <span id="busuanzi_container_site_pv">PV: <span id="busuanzi_value_site_pv"></span> :)</span>
+    
+    </div>
+    
+</footer>
+    </div>
+    <!-- toc -->
+    
+    <div class="toc-wrapper" style=
+    
+
+
+
+
+
+
+
+top:50vh;
+
+    >
+        <div class="toc-catalog">
+            <span class="iconfont-archer catalog-icon">&#xe613;</span><span>CATALOG</span>
+        </div>
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#Prometheus"><span class="toc-number">1.</span> <span class="toc-text">Prometheus</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Prometheus-架构"><span class="toc-number">1.1.</span> <span class="toc-text">Prometheus 架构</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#数据模型"><span class="toc-number">1.2.</span> <span class="toc-text">数据模型</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#样本"><span class="toc-number">1.2.1.</span> <span class="toc-text">样本</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#表示方式"><span class="toc-number">1.2.2.</span> <span class="toc-text">表示方式</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#查询语句PromQL"><span class="toc-number">1.3.</span> <span class="toc-text">查询语句PromQL</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#HTTP-API"><span class="toc-number">1.4.</span> <span class="toc-text">HTTP API</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#API响应格式"><span class="toc-number">1.4.1.</span> <span class="toc-text">API响应格式</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#表达式查询"><span class="toc-number">1.4.2.</span> <span class="toc-text">表达式查询</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#瞬时数据查询"><span class="toc-number">1.4.2.1.</span> <span class="toc-text">瞬时数据查询</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#区间数据查询"><span class="toc-number">1.4.2.2.</span> <span class="toc-text">区间数据查询</span></a></li></ol></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#Grafana"><span class="toc-number">2.</span> <span class="toc-text">Grafana</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#数据源（Data-Source）"><span class="toc-number">2.1.</span> <span class="toc-text">数据源（Data Source）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#仪表盘（Dashboard）"><span class="toc-number">2.2.</span> <span class="toc-text">仪表盘（Dashboard）</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#面板（Panel）"><span class="toc-number">2.3.</span> <span class="toc-text">面板（Panel）</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#JSON-Datasource"><span class="toc-number">3.</span> <span class="toc-text">JSON Datasource</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#API"><span class="toc-number">3.1.</span> <span class="toc-text">API</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#API-具体格式"><span class="toc-number">3.2.</span> <span class="toc-text">API 具体格式</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#search"><span class="toc-number">3.2.1.</span> <span class="toc-text">search</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#query"><span class="toc-number">3.2.2.</span> <span class="toc-text">query</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#参考学习资料"><span class="toc-number">4.</span> <span class="toc-text">参考学习资料</span></a></li></ol>
+    </div>
+    
+    <div class="back-top iconfont-archer">&#xe639;</div>
+    <div class="sidebar sidebar-hide">
+    <ul class="sidebar-tabs sidebar-tabs-active-0">
+        <li class="sidebar-tab-archives"><span class="iconfont-archer">&#xe67d;</span><span class="tab-name">Archive</span></li>
+        <li class="sidebar-tab-tags"><span class="iconfont-archer">&#xe61b;</span><span class="tab-name">Tag</span></li>
+        <li class="sidebar-tab-categories"><span class="iconfont-archer">&#xe666;</span><span class="tab-name">Cate</span></li>
+    </ul>
+    <div class="sidebar-content sidebar-content-show-archive">
+          <div class="sidebar-panel-archives">
+    <!-- 在ejs中将archive按照时间排序 -->
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <div class="total-and-search">
+        <div class="total-archive">
+        Total : 15
+        </div>
+        <!-- search  -->
+        
+    </div>
+    
+    <div class="post-archive">
+    
+    
+    
+    
+    <div class="archive-year"> 2020 </div>
+    <ul class="year-list">
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">08/26</span><a class="archive-post-title" href= "/posts/1754/" >学习笔记：Effective C++ (二)：构造析构赋值运算</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">08/26</span><a class="archive-post-title" href= "/posts/37873/" >学习笔记：Effective C++ (一)：让自己习惯C++</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">07/24</span><a class="archive-post-title" href= "/posts/63042/" >学习笔记：Redis 设计与实现 —— 数据结构与对象</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">07/05</span><a class="archive-post-title" href= "/posts/13958/" >实习总结：标注平台结算统计接口开发中的查询优化与SQL优化知识总结</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">06/20</span><a class="archive-post-title" href= "/posts/23611/" >学习笔记：InnoDB存储引擎 索引与算法 （一）</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">06/15</span><a class="archive-post-title" href= "/posts/23692/" >实习总结：基于Prometheus + Grafana + JsonDatasource 搭建云资源监控系统</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/20</span><a class="archive-post-title" href= "/posts/19531/" >学习笔记：Redis 入门指南</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/07</span><a class="archive-post-title" href= "/posts/11653/" >学习笔记：进程间通信</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/02</span><a class="archive-post-title" href= "/posts/41580/" >CSAPP 学习笔记：并发编程</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">04/18</span><a class="archive-post-title" href= "/posts/47691/" >CSAPP 学习笔记：函数调用及栈帧原理</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">04/15</span><a class="archive-post-title" href= "/posts/19769/" >转载笔记：虚拟内存的那点事儿</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">03/15</span><a class="archive-post-title" href= "/posts/23296/" >剑指offer 47-48 ：不用加减乘除做加法、求1+2+3+...+n</a>
+        </li>
+    
+    
+    
+    
+    
+        </ul>
+    
+    <div class="archive-year"> 2019 </div>
+    <ul class="year-list">
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/31</span><a class="archive-post-title" href= "/posts/28656/" >RNN-based GAN 基础模型及相关论文</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/29</span><a class="archive-post-title" href= "/posts/5812/" >论文构思：GAN-based Data Augmentation for Fall Detection Datasets</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/28</span><a class="archive-post-title" href= "/posts/1521/" >论文笔记：Detecting Falls with Wearable Sensors Using Machine Learning Techniques</a>
+        </li>
+    
+    </div>
+  </div>
+        <div class="sidebar-panel-tags">
+    <div class="sidebar-tags-name">
+    
+        <span class="sidebar-tag-name" data-tags="操作系统"><span class="iconfont-archer">&#xe606;</span>操作系统</span>
+    
+        <span class="sidebar-tag-name" data-tags="学习笔记"><span class="iconfont-archer">&#xe606;</span>学习笔记</span>
+    
+        <span class="sidebar-tag-name" data-tags="并发编程"><span class="iconfont-archer">&#xe606;</span>并发编程</span>
+    
+        <span class="sidebar-tag-name" data-tags="Fall Detection"><span class="iconfont-archer">&#xe606;</span>Fall Detection</span>
+    
+        <span class="sidebar-tag-name" data-tags="Machine Learning"><span class="iconfont-archer">&#xe606;</span>Machine Learning</span>
+    
+        <span class="sidebar-tag-name" data-tags="Deep Learning"><span class="iconfont-archer">&#xe606;</span>Deep Learning</span>
+    
+        <span class="sidebar-tag-name" data-tags="C++"><span class="iconfont-archer">&#xe606;</span>C++</span>
+    
+        <span class="sidebar-tag-name" data-tags="剑指offer"><span class="iconfont-archer">&#xe606;</span>剑指offer</span>
+    
+        <span class="sidebar-tag-name" data-tags="算法笔记"><span class="iconfont-archer">&#xe606;</span>算法笔记</span>
+    
+        <span class="sidebar-tag-name" data-tags="计算机组成原理"><span class="iconfont-archer">&#xe606;</span>计算机组成原理</span>
+    
+        <span class="sidebar-tag-name" data-tags="MySQL"><span class="iconfont-archer">&#xe606;</span>MySQL</span>
+    
+        <span class="sidebar-tag-name" data-tags="数据库"><span class="iconfont-archer">&#xe606;</span>数据库</span>
+    
+        <span class="sidebar-tag-name" data-tags="Redis"><span class="iconfont-archer">&#xe606;</span>Redis</span>
+    
+        <span class="sidebar-tag-name" data-tags="实习总结"><span class="iconfont-archer">&#xe606;</span>实习总结</span>
+    
+        <span class="sidebar-tag-name" data-tags="运维"><span class="iconfont-archer">&#xe606;</span>运维</span>
+    
+        <span class="sidebar-tag-name" data-tags="集群监控"><span class="iconfont-archer">&#xe606;</span>集群监控</span>
+    
+        <span class="sidebar-tag-name" data-tags="GO语言"><span class="iconfont-archer">&#xe606;</span>GO语言</span>
+    
+        <span class="sidebar-tag-name" data-tags="后台开发"><span class="iconfont-archer">&#xe606;</span>后台开发</span>
+    
+        <span class="sidebar-tag-name" data-tags="转载笔记"><span class="iconfont-archer">&#xe606;</span>转载笔记</span>
+    
+    </div>
+    <div class="iconfont-archer sidebar-tags-empty">&#xe678;</div>
+    <div class="tag-load-fail" style="display: none; color: #ccc; font-size: 0.6rem;">
+    缺失模块。<br/>
+    1、请确保node版本大于6.2<br/>
+    2、在博客根目录（注意不是archer根目录）执行以下命令：<br/>
+    <span style="color: #f75357; font-size: 1rem; line-height: 2rem;">npm i hexo-generator-json-content --save</span><br/>
+    3、在根目录_config.yml里添加配置：
+    <pre style="color: #787878; font-size: 0.6rem;">
+jsonContent:
+  meta: false
+  pages: false
+  posts:
+    title: true
+    date: true
+    path: true
+    text: false
+    raw: false
+    content: false
+    slug: false
+    updated: false
+    comments: false
+    link: false
+    permalink: false
+    excerpt: false
+    categories: true
+    tags: true</pre>
+    </div> 
+    <div class="sidebar-tags-list"></div>
+</div>
+        <div class="sidebar-panel-categories">
+    <div class="sidebar-categories-name">
+    
+        <span class="sidebar-category-name" data-categories="学习笔记"><span class="iconfont-archer">&#xe60a;</span>学习笔记</span>
+    
+        <span class="sidebar-category-name" data-categories="机器学习"><span class="iconfont-archer">&#xe60a;</span>机器学习</span>
+    
+        <span class="sidebar-category-name" data-categories="实习总结"><span class="iconfont-archer">&#xe60a;</span>实习总结</span>
+    
+        <span class="sidebar-category-name" data-categories="转载笔记"><span class="iconfont-archer">&#xe60a;</span>转载笔记</span>
+    
+    </div>
+    <div class="iconfont-archer sidebar-categories-empty">&#xe678;</div>
+    <div class="sidebar-categories-list"></div>
+</div>
+    </div>
+</div> 
+    <script>
+    var siteMeta = {
+        root: "/",
+        author: "枫逸"
+    }
+</script>
+    <!-- CDN failover -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script>
+    <script type="text/javascript">
+        if (typeof window.$ === 'undefined')
+        {
+            console.warn('jquery load from jsdelivr failed, will load local script')
+            document.write('<script src="/lib/jquery.min.js">\x3C/script>')
+        }
+    </script>
+    <script src="/scripts/main.js"></script>
+    <!-- algolia -->
+    
+    <!-- busuanzi  -->
+    
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    
+    <!-- CNZZ  -->
+    
+    </div>
+    <!-- async load share.js -->
+    
+        <script src="/scripts/share.js" async></script><!-- hexo-inject:begin --><!-- hexo-inject:end -->    
+     
+    </body>
+</html>
+
+

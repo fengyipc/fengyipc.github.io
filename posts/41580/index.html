@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+    <!-- title -->
+
+
+
+
+<!-- keywords -->
+
+
+
+
+<head>
+    <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" >
+    <meta name="author" content="枫逸">
+    <meta name="renderer" content="webkit">
+    <meta name="copyright" content="枫逸">
+    
+    <meta name="keywords" content="Maple's Story,枫逸">
+    
+    <meta name="description" content="不要温和地走进那个良夜。">
+    <meta name="description" content="概述 如果逻辑控制流在时间上重叠，那么它们就是并发的（concurrent).  内核级并发：  操作系统用来运行多个应用程序的机制  并发不仅仅局限于内核，应用级并发也是很有用的：  访问慢速I&#x2F;O设备 与人交互 通过推迟工作以降低延迟 服务多个网络客户端 在多核机器上进行并行计算  使用应用级并发的应用程序叫做并发程序（concurrent program）。现代操作系统提供了三种基本的构造并">
+<meta property="og:type" content="article">
+<meta property="og:title" content="CSAPP 学习笔记：并发编程">
+<meta property="og:url" content="https://www.pengchen.top/posts/41580/index.html">
+<meta property="og:site_name" content="Maple&#39;s Story">
+<meta property="og:description" content="概述 如果逻辑控制流在时间上重叠，那么它们就是并发的（concurrent).  内核级并发：  操作系统用来运行多个应用程序的机制  并发不仅仅局限于内核，应用级并发也是很有用的：  访问慢速I&#x2F;O设备 与人交互 通过推迟工作以降低延迟 服务多个网络客户端 在多核机器上进行并行计算  使用应用级并发的应用程序叫做并发程序（concurrent program）。现代操作系统提供了三种基本的构造并">
+<meta property="og:image" content="https://www.pengchen.top/images/fig24.png">
+<meta property="og:image" content="https://www.pengchen.top/images/fig25.png">
+<meta property="og:image" content="https://www.pengchen.top/images/fig26.png">
+<meta property="og:image" content="https://www.pengchen.top/images/fig27.png">
+<meta property="og:image" content="https://www.pengchen.top/images/fig28.png">
+<meta property="og:image" content="https://www.pengchen.top/images/fig29.png">
+<meta property="article:published_time" content="2020-05-02T08:47:45.000Z">
+<meta property="article:modified_time" content="2020-09-04T17:44:05.365Z">
+<meta property="article:author" content="枫逸">
+<meta property="article:tag" content="操作系统">
+<meta property="article:tag" content="学习笔记">
+<meta property="article:tag" content="并发编程">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://www.pengchen.top/images/fig24.png">
+    <meta http-equiv="Cache-control" content="no-cache">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    
+    <title>CSAPP 学习笔记：并发编程 · Maple&#39;s Story</title>
+    <style type="text/css">
+    @font-face {
+        font-family: 'Oswald-Regular';
+        src: url("/font/Oswald-Regular.ttf");
+    }
+
+    body {
+        margin: 0;
+    }
+
+    header,
+    footer,
+    .back-top,
+    .sidebar,
+    .container,
+    .site-intro-meta,
+    .toc-wrapper {
+        display: none;
+    }
+
+    .site-intro {
+        position: relative;
+        z-index: 3;
+        width: 100%;
+        /* height: 50vh; */
+        overflow: hidden;
+    }
+
+    .site-intro-placeholder {
+        position: absolute;
+        z-index: -2;
+        top: 0;
+        left: 0;
+        width: calc(100% + 300px);
+        height: 100%;
+        background: repeating-linear-gradient(-45deg, #444 0, #444 80px, #333 80px, #333 160px);
+        background-position: center center;
+        transform: translate3d(-226px, 0, 0);
+        animation: gradient-move 2.5s ease-out 0s infinite;
+    }
+
+    @keyframes gradient-move {
+        0% {
+            transform: translate3d(-226px, 0, 0);
+        }
+        100% {
+            transform: translate3d(0, 0, 0);
+        }
+    }
+
+</style>
+
+    <link rel="preload" href= "/css/style.css?v=20180824" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+    <link rel="stylesheet" href= "/css/mobile.css?v=20180824" media="(max-width: 980px)">
+    
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.2.5/jquery.fancybox.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+    
+    <!-- /*! loadCSS. [c]2017 Filament Group, Inc. MIT License */
+/* This file is meant as a standalone workflow for
+- testing support for link[rel=preload]
+- enabling async CSS loading in browsers that do not support rel=preload
+- applying rel preload css once loaded, whether supported or not.
+*/ -->
+<script>
+(function( w ){
+	"use strict";
+	// rel=preload support test
+	if( !w.loadCSS ){
+		w.loadCSS = function(){};
+	}
+	// define on the loadCSS obj
+	var rp = loadCSS.relpreload = {};
+	// rel=preload feature support test
+	// runs once and returns a function for compat purposes
+	rp.support = (function(){
+		var ret;
+		try {
+			ret = w.document.createElement( "link" ).relList.supports( "preload" );
+		} catch (e) {
+			ret = false;
+		}
+		return function(){
+			return ret;
+		};
+	})();
+
+	// if preload isn't supported, get an asynchronous load by using a non-matching media attribute
+	// then change that media back to its intended value on load
+	rp.bindMediaToggle = function( link ){
+		// remember existing media attr for ultimate state, or default to 'all'
+		var finalMedia = link.media || "all";
+
+		function enableStylesheet(){
+			link.media = finalMedia;
+		}
+
+		// bind load handlers to enable media
+		if( link.addEventListener ){
+			link.addEventListener( "load", enableStylesheet );
+		} else if( link.attachEvent ){
+			link.attachEvent( "onload", enableStylesheet );
+		}
+
+		// Set rel and non-applicable media type to start an async request
+		// note: timeout allows this to happen async to let rendering continue in IE
+		setTimeout(function(){
+			link.rel = "stylesheet";
+			link.media = "only x";
+		});
+		// also enable media after 3 seconds,
+		// which will catch very old browsers (android 2.x, old firefox) that don't support onload on link
+		setTimeout( enableStylesheet, 3000 );
+	};
+
+	// loop through link elements in DOM
+	rp.poly = function(){
+		// double check this to prevent external calls from running
+		if( rp.support() ){
+			return;
+		}
+		var links = w.document.getElementsByTagName( "link" );
+		for( var i = 0; i < links.length; i++ ){
+			var link = links[ i ];
+			// qualify links to those with rel=preload and as=style attrs
+			if( link.rel === "preload" && link.getAttribute( "as" ) === "style" && !link.getAttribute( "data-loadcss" ) ){
+				// prevent rerunning on link
+				link.setAttribute( "data-loadcss", true );
+				// bind listeners to toggle media back
+				rp.bindMediaToggle( link );
+			}
+		}
+	};
+
+	// if unsupported, run the polyfill
+	if( !rp.support() ){
+		// run once at least
+		rp.poly();
+
+		// rerun poly on an interval until onload
+		var run = w.setInterval( rp.poly, 500 );
+		if( w.addEventListener ){
+			w.addEventListener( "load", function(){
+				rp.poly();
+				w.clearInterval( run );
+			} );
+		} else if( w.attachEvent ){
+			w.attachEvent( "onload", function(){
+				rp.poly();
+				w.clearInterval( run );
+			} );
+		}
+	}
+
+
+	// commonjs
+	if( typeof exports !== "undefined" ){
+		exports.loadCSS = loadCSS;
+	}
+	else {
+		w.loadCSS = loadCSS;
+	}
+}( typeof global !== "undefined" ? global : this ) );
+</script>
+
+    <link rel="icon" href= "/assets/001.ico" />
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/webfontloader@1.6.28/webfontloader.min.js" as="script" />
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js" as="script" />
+    <link rel="preload" href="/scripts/main.js" as="script" />
+    <link rel="preload" as="font" href="/font/Oswald-Regular.ttf" crossorigin>
+    <link rel="preload" as="font" href="https://at.alicdn.com/t/font_327081_1dta1rlogw17zaor.woff" crossorigin>
+    
+    <!-- fancybox -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.2.5/jquery.fancybox.min.js" defer></script>
+    <!-- 百度统计  -->
+    
+    <!-- 谷歌统计  -->
+    
+<meta name="generator" content="Hexo 4.2.1"><!-- hexo-inject:begin --><!-- hexo-inject:end --></head>
+
+    
+        <body class="post-body">
+    
+    
+<!-- hexo-inject:begin --><!-- hexo-inject:end --><header class="header">
+
+    <div class="read-progress"></div>
+    <div class="header-sidebar-menu">&#xe775;</div>
+    <!-- post页的toggle banner  -->
+    
+    <div class="banner">
+            <div class="blog-title">
+                <a href="/" >Maple&#39;s Story</a>
+            </div>
+            <div class="post-title">
+                <a href="#" class="post-name">CSAPP 学习笔记：并发编程</a>
+            </div>
+    </div>
+    
+    <a class="home-link" href=/>Maple's Story</a>
+</header>
+    <div class="wrapper">
+        <div class="site-intro" style="
+
+
+
+
+
+
+
+height:50vh;
+">
+    
+    <!-- 主页  -->
+    
+    
+    <!-- 404页  -->
+            
+    <div class="site-intro-placeholder"></div>
+    <div class="site-intro-img" style="background-image: url(https://source.unsplash.com/random)"></div>
+    <div class="site-intro-meta">
+        <!-- 标题  -->
+        <h1 class="intro-title">
+            <!-- 主页  -->
+            
+            CSAPP 学习笔记：并发编程
+            <!-- 404 -->
+            
+        </h1>
+        <!-- 副标题 -->
+        <p class="intro-subtitle">
+            <!-- 主页副标题  -->
+            
+            
+            <!-- 404 -->
+            
+        </p>
+        <!-- 文章页meta -->
+        
+            <div class="post-intros">
+                <!-- 文章页标签  -->
+                
+                    <div class= post-intro-tags >
+    
+        <a class="post-tag" href="javascript:void(0);" data-tags = "操作系统">操作系统</a>
+    
+        <a class="post-tag" href="javascript:void(0);" data-tags = "学习笔记">学习笔记</a>
+    
+        <a class="post-tag" href="javascript:void(0);" data-tags = "并发编程">并发编程</a>
+    
+</div>
+                
+                
+                    <div class="post-intro-read">
+                        <span>字数统计: <span class="post-count word-count">4.7k</span>阅读时长: <span class="post-count reading-time">16 min</span></span>
+                    </div>
+                
+                <div class="post-intro-meta">
+                    <span class="post-intro-calander iconfont-archer">&#xe676;</span>
+                    <span class="post-intro-time">2020/05/02</span>
+                    
+                    <span id="busuanzi_container_page_pv" class="busuanzi-pv">
+                        <span class="iconfont-archer">&#xe602;</span>
+                        <span id="busuanzi_value_page_pv"></span>
+                    </span>
+                    
+                    <span class="shareWrapper">
+                        <span class="iconfont-archer shareIcon">&#xe71d;</span>
+                        <span class="shareText">Share</span>
+                        <ul class="shareList">
+                            <li class="iconfont-archer share-qr" data-type="qr">&#xe75b;
+                                <div class="share-qrcode"></div>
+                            </li>
+                            <li class="iconfont-archer" data-type="weibo">&#xe619;</li>
+                            <li class="iconfont-archer" data-type="qzone">&#xe62e;</li>
+                            <li class="iconfont-archer" data-type="twitter">&#xe634;</li>
+                            <li class="iconfont-archer" data-type="facebook">&#xe67a;</li>
+                        </ul>
+                    </span>
+                </div>
+            </div>
+        
+    </div>
+</div>
+        <script>
+ 
+  // get user agent
+  var browser = {
+    versions: function () {
+      var u = window.navigator.userAgent;
+      return {
+        userAgent: u,
+        trident: u.indexOf('Trident') > -1, //IE内核
+        presto: u.indexOf('Presto') > -1, //opera内核
+        webKit: u.indexOf('AppleWebKit') > -1, //苹果、谷歌内核
+        gecko: u.indexOf('Gecko') > -1 && u.indexOf('KHTML') == -1, //火狐内核
+        mobile: !!u.match(/AppleWebKit.*Mobile.*/), //是否为移动终端
+        ios: !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/), //ios终端
+        android: u.indexOf('Android') > -1 || u.indexOf('Linux') > -1, //android终端或者uc浏览器
+        iPhone: u.indexOf('iPhone') > -1 || u.indexOf('Mac') > -1, //是否为iPhone或者安卓QQ浏览器
+        iPad: u.indexOf('iPad') > -1, //是否为iPad
+        webApp: u.indexOf('Safari') == -1, //是否为web应用程序，没有头部与底部
+        weixin: u.indexOf('MicroMessenger') == -1, //是否为微信浏览器
+        uc: u.indexOf('UCBrowser') > -1 //是否为android下的UC浏览器
+      };
+    }()
+  }
+  console.log("userAgent:" + browser.versions.userAgent);
+
+  // callback
+  function fontLoaded() {
+    console.log('font loaded');
+    if (document.getElementsByClassName('site-intro-meta')) {
+      document.getElementsByClassName('intro-title')[0].classList.add('intro-fade-in');
+      document.getElementsByClassName('intro-subtitle')[0].classList.add('intro-fade-in');
+      var postIntros = document.getElementsByClassName('post-intros')[0]
+      if (postIntros) {
+        postIntros.classList.add('post-fade-in');
+      }
+    }
+  }
+
+  // UC不支持跨域，所以直接显示
+  function asyncCb(){
+    if (browser.versions.uc) {
+      console.log("UCBrowser");
+      fontLoaded();
+    } else {
+      WebFont.load({
+        custom: {
+          families: ['Oswald-Regular']
+        },
+        loading: function () {  //所有字体开始加载
+          // console.log('loading');
+        },
+        active: function () {  //所有字体已渲染
+          fontLoaded();
+        },
+        inactive: function () { //字体预加载失败，无效字体或浏览器不支持加载
+          console.log('inactive: timeout');
+          fontLoaded();
+        },
+        timeout: 5000 // Set the timeout to two seconds
+      });
+    }
+  }
+
+  function asyncErr(){
+    console.warn('script load from CDN failed, will load local script')
+  }
+
+  // load webfont-loader async, and add callback function
+  function async(u, cb, err) {
+    var d = document, t = 'script',
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (cb) { o.addEventListener('load', function (e) { cb(null, e); }, false); }
+    if (err) { o.addEventListener('error', function (e) { err(null, e); }, false); }
+    s.parentNode.insertBefore(o, s);
+  }
+
+  var asyncLoadWithFallBack = function(arr, success, reject) {
+      var currReject = function(){
+        reject()
+        arr.shift()
+        if(arr.length)
+          async(arr[0], success, currReject)
+        }
+
+      async(arr[0], success, currReject)
+  }
+
+  asyncLoadWithFallBack([
+    "https://cdn.jsdelivr.net/npm/webfontloader@1.6.28/webfontloader.min.js", 
+    "https://cdn.bootcss.com/webfont/1.6.28/webfontloader.js",
+    "/lib/webfontloader.min.js"
+  ], asyncCb, asyncErr)
+</script>        
+        <img class="loading" src="/assets/loading.svg" style="display: block; margin: 6rem auto 0 auto; width: 6rem; height: 6rem;" />
+        <div class="container container-unloaded">
+            <main class="main post-page">
+    <article class="article-entry">
+        <h2 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h2><blockquote>
+<p>如果逻辑控制流在时间上重叠，那么它们就是<strong>并发的（concurrent)</strong>.</p>
+</blockquote>
+<p>内核级并发：</p>
+<ul>
+<li>操作系统用来运行多个应用程序的机制</li>
+</ul>
+<p>并发不仅仅局限于内核，应用级并发也是很有用的：</p>
+<ul>
+<li>访问慢速I/O设备</li>
+<li>与人交互</li>
+<li>通过推迟工作以降低延迟</li>
+<li>服务多个网络客户端</li>
+<li>在多核机器上进行并行计算</li>
+</ul>
+<p>使用应用级并发的应用程序叫做<strong>并发程序（concurrent program）</strong>。现代操作系统提供了三种基本的构造并发程序的方法：</p>
+<ul>
+<li><strong>进程：</strong> 每个逻辑控制流都是一个进程，由内核来调度和维护。因为进程有独立的虚拟地址空间，想要和其他流通信，控制流必须使用某种显式的进程间通信（interprocess communication，IPC）机制。</li>
+<li><strong>I/O 多路复用：</strong> 应用程序在一个进程的上下文中显式地调用它们自己的逻辑流。逻辑流被模型化为状态机，数据到达文件描述符后，主程序显式地从一个状态转换为另一个状态。因为程序是一个单独的进程，所以所有的流都共享同一个地址空间。</li>
+<li><strong>线程：</strong> 线程是运行在一个单一进程上下文中的逻辑流，由内核进行调度。你可以把线程看成是其他两种方式的混合体，像进程流一样由内核进行调度，而像 I/O 多路复用流一样共享同一个虚拟地址空间。</li>
+</ul>
+<hr>
+<h2 id="基于进程的并发编程"><a href="#基于进程的并发编程" class="headerlink" title="基于进程的并发编程"></a>基于进程的并发编程</h2><p>构造并发程序最简单的方法就是用进程，使用那些大家都很熟悉的函数，像 <code>fork</code>, <code>exec</code> 和 <code>waitpid</code>。</p>
+<p>对于在父、子进程间共享状态信息，进程有一个非常清晰的模型：<strong>共享文件表，但是不共享用户地址空间</strong>。进程有独立的地址空间既是优点也是缺点。这样一来，一个进程不可能不小心覆盖另一个进程的虚拟存储器，这就消除了许多令人迷惑的错误。</p>
+<p>另一方面，独立的地址空间使得进程共享状态信息变得更加困难。为了共享信息，它们必须使用<strong>显式的 IPC 机制</strong>。</p>
+<p>基于进程的设计的另一个缺点是，它们往往比较慢，因为<strong>进程控制和 IPC 的开销很高</strong>。</p>
+<blockquote>
+<p>Unix IPC 通常指所有允许进程和同一台主机上其他进程进行通信的技术。其中包括<strong>管道、先进先出（ FIFO )、系统 V 共享内存、系统 V 信号量</strong>。</p>
+</blockquote>
+<hr>
+<h2 id="基于-I-O-多路复用的并发编程"><a href="#基于-I-O-多路复用的并发编程" class="headerlink" title="基于 I/O 多路复用的并发编程"></a>基于 I/O 多路复用的并发编程</h2><p>I/O 多路复用可以用做<strong>并发事件驱动（event-driven）程序</strong>的基础，在事件驱动程序中，某些事件会导致流向前推进。一般的思路是将逻辑流模型化为状态机。不严格地说，一个状态机（state machine）就是一组<strong>状态（state）、输入事件（input event）和转移（transition）</strong>，其中转移是将状态和输入事件映射到状态。通常把状态机画成有向图，其中节点表示状态，有向弧表示转移，而弧上的标号表示输入事件。</p>
+<p><img src="/images/fig24.png" alt="逻辑流状态机举例"></p>
+<p>假设要求编写一个 echo 服务器，它也能对用户从标准输入键入的交互命令做出响应。此时服务器必须响应两个互相独立的I/O事件：1）网络客户端发起的连接请求 2）用户在键盘上键入的命令 ，解决的办法是I/O多路复用技术。基本思想是使用select函数，要求内核挂起进程，只有在一个或多个 I/O 事件发生后，才将控制返回给应用程序。</p>
+<p>可以使用 select 、 poll 和 epoll 来实现I/O复用。</p>
+<p>I/O 多路复用技术的优点：</p>
+<ul>
+<li>比基于进程的设计给了程序员更多的对程序行为的控制。</li>
+<li>一个基于I/O多路复用的事件驱动服务器是运行在单一进程上下文中的，因此每个逻辑流都访问该进程的全部地址空间。这使得在流之间共享数据变得很容易。</li>
+<li>一个与作为单进程运行相关的优点是，你可以利用熟悉的调试工具，例如GDB来调试你的并发服务器，就像对顺序程序那样。</li>
+<li>事件驱动设计常常比基于进程的设计要高效很多，因为它们不需要进程上下文切换来调度新的流。</li>
+</ul>
+<p>缺点：</p>
+<ul>
+<li><p>编码复杂。随着并发粒度的减小，复杂性还会上升。这里的粒度是指<strong>每个逻辑流每个时间片执行的指令数量</strong>。</p>
+</li>
+<li><p>基于事件的设计的另一重大缺点是它们<strong>不能充分利用多核处理器</strong>。</p>
+</li>
+</ul>
+<hr>
+<h2 id="基于线程的并发编程"><a href="#基于线程的并发编程" class="headerlink" title="基于线程的并发编程"></a>基于线程的并发编程</h2><p><strong>线程（thread）</strong> 就是运行在进程上下文中的逻辑流。程序都是由每个进程中的至少一个线程组成的。线程由内核自动调度。每个线程都有它自己的<strong>线程上下文（thread context）</strong>，包括一个唯一的整数线程 ID（Thread ID，TID）、栈、栈指针、程序计数器、通用目的寄存器和条件码。所有的运行在一个进程里的线程共享该进程的整个虚拟地址空间。</p>
+<p>基于线程的逻辑流集合了基于进程和基于 I/O 多路复用的流的特性:</p>
+<ul>
+<li>同进程一样，线程由内核自动调度，并且内核通过一个整数ID来识别线程。</li>
+<li>同 I/O 多路复用的流一样，多个线程运行在同一进程的上下文中，共享虚拟地址空间的所有内容，包括代码、数据、堆、共享库和打开的文件。</li>
+</ul>
+<h3 id="线程执行模型"><a href="#线程执行模型" class="headerlink" title="线程执行模型"></a>线程执行模型</h3><p>每个进程开始生命周期时都是单一线程，这个线程称为<strong>主线程（main thread）</strong>。在某一时刻，主线程创建一个<strong>对等线程（peer thread）</strong>，从这个时间点开始，两个线程就并发地运行。</p>
+<ul>
+<li>线程的<strong>上下文切换</strong>要比进程的上下文切换快得多。</li>
+<li>线程不像进程那样，不是按照严格的父子层次来组织的。</li>
+<li>和一个进程相关的线程组成<strong>对等线程池</strong>。</li>
+<li>主线程与其他线程的区别仅在于它总是进程中第一个运行的线程。</li>
+<li>一个线程可以杀死任何对等线程，或等待任意对等线程终止，都能读写相同的共享数据。</li>
+</ul>
+<h3 id="Posix-线程"><a href="#Posix-线程" class="headerlink" title="Posix 线程"></a>Posix 线程</h3><p>Posix 线程（Pthreads)是在C程序中处理线程的标准接口，在所有的Linux程序上都可用</p>
+<ol>
+<li>创建线程：</li>
+</ol>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;pthread.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="comment">// tid为返回的新创建线程ID, attr设置新线程默认熟悉，f为新线程运行程序，arg为f的参数</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">pthread_create</span><span class="params">(<span class="keyword">pthread_t</span> *tid, <span class="keyword">pthread_attr_t</span> *attr, func *f, <span class="keyword">void</span> *arg)</span></span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 子线程通过其获取自己的线程ID</span></span><br><span class="line"><span class="keyword">pthread_t</span> pthread_self(<span class="keyword">void</span>);</span><br></pre></td></tr></table></figure>
+<ol>
+<li>终止线程：</li>
+</ol>
+<ul>
+<li>顶层的线程例程返回时，线程隐式终止</li>
+<li>通过调用 <code>pthread_exit</code> 函数显式终止。如为主线程调用，则会等待所有对等线程终止，再终止主线程以及整个进程。</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// thread_return 为线程例程的返回值</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">pthread_exit</span><span class="params">(<span class="keyword">void</span> *thread_return)</span></span>;</span><br></pre></td></tr></table></figure>
+<ul>
+<li>某个对等线程调用 Linux 的 <code>exit</code> 函数，则该函数终止进程及所有相关线程。</li>
+<li>另一个对等线程以该线程 ID 作为参数调用<code>pthread_cancel</code>函数。</li>
+</ul>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">pthread_cancel</span><span class="params">(<span class="keyword">pthread_t</span> tid)</span></span>;</span><br></pre></td></tr></table></figure>
+<ol>
+<li>回收已终止线程资源</li>
+</ol>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 阻塞，直到线程 tid 终止， 回收其占有的所有内存资源</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">pthread_join</span><span class="params">(<span class="keyword">pthread_t</span> tid, <span class="keyword">void</span> **thread_return)</span></span>;</span><br></pre></td></tr></table></figure>
+<ol>
+<li>分离线程</li>
+</ol>
+<p>线程可以是可结合的（ joinable ） 或者是分离的（ detached )。一个可结合的线程能被其他线程回收、杀死，且被其他线程回收前，内存资源（例如栈）不会释放。反之，分离的线程不能被其他线程回收、杀死，内存资源在它终止时自动释放。</p>
+<p>默认情况下，线程被创建为可结合的。为避免内存泄漏，可结合线程都需要被其他线程显性地回收，或通过<code>pthread_detach</code>函数分离。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 线程以pthread_self()为参数来分离自己</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">pthread_detach</span><span class="params">( <span class="keyword">pthread_t</span> tid)</span></span>;</span><br></pre></td></tr></table></figure>
+<hr>
+<h2 id="多线程程序中的共享变量"><a href="#多线程程序中的共享变量" class="headerlink" title="多线程程序中的共享变量"></a>多线程程序中的共享变量</h2><p>多个线程很容易共享相同的程序变量。然而，这种共享也是很棘手的。为了编写正确的线程化程序，我们必须对所谓的共享以及它是如何工作的有很清楚的了解。</p>
+<p>为了理解变量是否是共享的，有一些基本的问题要解答：</p>
+<ol>
+<li>线程的基础存储器模型是什么？</li>
+<li>根据这个模型，变量实例是如何映射到存储器的？</li>
+<li>最后，有多少线程引用这些实例？</li>
+</ol>
+<p>一个变量是共享的，当且仅当多个线程引用这个变量的某个实例。</p>
+<h3 id="线程内存模型"><a href="#线程内存模型" class="headerlink" title="线程内存模型"></a>线程内存模型</h3><p>线程独立的上下文包括：线程ID、栈、栈指针、程序计数器、条件码和通用寄存器。共享进程上下文的其它部分，包括代码段、数据段、堆、共享库代码、打开的文件集合等。</p>
+<p>实际操作中无法访问其它线程的寄存器值，但是由于所有的线程栈都保存在虚拟地址空间的栈区域，如果某个线程以某种方式得到了指向其它线程栈的指针，则可以读写这个栈的任何部分。</p>
+<h3 id="变量映射到内存"><a href="#变量映射到内存" class="headerlink" title="变量映射到内存"></a>变量映射到内存</h3><p>多线程的 C 程序中的变量根据存储类型被映射到虚拟内存：</p>
+<ul>
+<li>全局变量： 定义在函数之外，只有一个实例， 任何线程都可以引用。</li>
+<li>本地自动变量： 定义在函数内，没有static的变量。每个线程栈都包含它自己的所有本地变量的实例。</li>
+<li>本地静态变量： 函数内部static变量。多个线程共享。</li>
+</ul>
+<hr>
+<h2 id="用信号量同步线程"><a href="#用信号量同步线程" class="headerlink" title="用信号量同步线程"></a>用信号量同步线程</h2><p>线程共享变量的遍历，也引入了 <strong>同步错误</strong> 的可能性。</p>
+<p>一种经典的解决同步不同执行线程问题的方法：基于一种叫做 <strong>信号量( semaphore)</strong> 的特殊类型变量的。信号量s是具有非负整数值的全局变量,只能由两种特殊的操作来处理,这两种操作称为P和V。</p>
+<ul>
+<li><strong>P(s):</strong> 如果s是非零的,那么P将s减1,并且立即返回。如如果s为零,那么就挂起进程, 直到s变为非零,并且该进程被一个V操作重启。在重启之后,P操作将s减1,并将控制 返回给调用者。</li>
+<li><strong>V(s):</strong> 操作将s加1。如果有任何进程阻塞在P操作等待s变成非零,那么V操作会重启 这些进程中的一个,然后该进程将s减1,完成它的P操作</li>
+</ul>
+<p>P 和 V 的定义确保了一个运行程序绝不可能进入这样一种状态,也就是一个正确初始化了的信号量有一个负值。这个属性称为<strong>信号量不变性( semaphore invariant )</strong>,为控制并发程序的轨迹线而避免不安全区提供了强有力的工具。</p>
+<p>Posix 标准定义了许多操作信号量的函数</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span> <span class="meta-string">&lt;semaphore.h&gt;</span></span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">sem_init</span><span class="params">(<span class="keyword">sem_t</span> *sem, <span class="number">0</span>, <span class="keyword">unsigned</span> <span class="keyword">int</span> value)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">sem_wait</span><span class="params">(<span class="keyword">sem_t</span> *s)</span></span>; <span class="comment">/* P(s) */</span></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">sem_post</span><span class="params">(<span class="keyword">sem_t</span> *s)</span></span>; <span class="comment">/* V(s) */</span></span><br><span class="line"></span><br><span class="line"><span class="comment">// 或者自行封装</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">P</span><span class="params">(<span class="keyword">sem_t</span> *s)</span></span>;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">V</span><span class="params">(<span class="keyword">sem_t</span> *s)</span></span>;</span><br></pre></td></tr></table></figure>
+<h3 id="利用信号量实现互斥"><a href="#利用信号量实现互斥" class="headerlink" title="利用信号量实现互斥"></a>利用信号量实现互斥</h3><p>基本的思想是将每个共享变量(或者相关共享变量集合)与一个信号量 s (初始为1) 联系起来, 然后用<code>P(s)</code>和<code>V(s)</code>操作将相应的临界区包围起来。以这种方式来保护共享变量的信号量叫做<strong>二元信号量( binary semaphore)</strong>，因为它的值总是0或者1。</p>
+<p>以提供互斥为目的的二元信号量也叫<strong>互斥锁（ mutex )</strong>。在互斥锁上执行 P 操作称为对互斥锁枷锁，执行 V 操作为对互斥锁解锁。</p>
+<h3 id="利用信号量调度共享资源"><a href="#利用信号量调度共享资源" class="headerlink" title="利用信号量调度共享资源"></a>利用信号量调度共享资源</h3><p>信号量的另一个重要的作用是调度对共享资源的访问。一个线程用信号量操作来通知另一个线程，程序状态中的某个条件已经为真了。两个经典的例子是<strong>生产者-消费者问题</strong>和<strong>读者-写者问题</strong>。</p>
+<ol>
+<li>生产者-消费者问题</li>
+</ol>
+<p>生产者和消费者线程共享有一个 n 个槽的有限缓冲区。生产者线程反复地生成新的项目（item），并把它们插入到缓冲区中。消费者线程不断地从缓冲区中取出这些项目，然后消费（使用）它们。</p>
+<p>因为插入和取出项目都涉及更新共享变量，所以我们必须保证对缓冲区的访问是互斥的。此外，如果缓冲区是满的，那么生产者必须等待直到有一个槽位变为可用。与之相似，如果缓冲区是空的，那么消费者必须等待直到有一个项目变为可用。</p>
+<p><img src="/images/fig25.png" alt="生产者-消费者问题"></p>
+<ol>
+<li>读者-写者问题</li>
+</ol>
+<p>读者-写者问题是互斥问题的一个概括。一组并发的线程要访问一个共享对象，例如一个主存中的数据结构，或者一个磁盘上的数据库。有些线程只读对象（读者），有些线程只修改对象（写者）。写者必须拥有对对象的独占的访问，而读者可以和无限多个其他的读者共享对象。一般来说，有无限多个并发的读者和写者。</p>
+<p>读者-写者问题存在几种变种，分别基于读者和写者的优先级。</p>
+<hr>
+<h2 id="使用线程提高并行性"><a href="#使用线程提高并行性" class="headerlink" title="使用线程提高并行性"></a>使用线程提高并行性</h2><p>写顺序程序只有一条逻辑流。写并发程序有多条并发流。并行程序是一个运行在多个处理器上的并发程序。因此，并行程序的集合是并发程序集合的真子集。</p>
+<p><img src="/images/fig26.png" alt="顺序、并发和并行程序集合之间的关系"></p>
+<p>并行程序由于涉及到内存共享与数据同步，而同步开销极为巨大，需要尽量避免。对代码看上去一点小小的改动都可能对性能造成极大的影响。</p>
+<hr>
+<h2 id="其他并发问题"><a href="#其他并发问题" class="headerlink" title="其他并发问题"></a>其他并发问题</h2><h3 id="线程安全"><a href="#线程安全" class="headerlink" title="线程安全"></a>线程安全</h3><p>当用线程编写程序时，必须小心地编写那些具有线程安全性（thread safety）属性的函数。一个函数被称为<strong>线程安全的（ thread-safe )</strong>, 当且仅当被多个并发线程反复地调用时，会一直产生正确的结果。</p>
+<p>通常有四类线程不安全函数：</p>
+<ol>
+<li>不保护共享变量的函数</li>
+<li>保持跨越多个调用的状态的函数</li>
+</ol>
+<blockquote>
+<p>一个伪随机数生成器是属于这一类。rand 函数是线程不安全的，因为当前调用的结果依赖于前次调用的中间结果。解决办法是重写它，使得它不再使用任何 static 数据。</p>
+</blockquote>
+<ol>
+<li>返回指向静态变量的指针的函数</li>
+<li>调用线程不安全函数的函数</li>
+</ol>
+<h3 id="可重入性"><a href="#可重入性" class="headerlink" title="可重入性"></a>可重入性</h3><p>有一类重要的线程安全函数叫做可重入函数（reentrant function），其特点在于它们被多个线程调用时，不会引用任何共享数据。可重入函数通常要比不可重入的线程安全的函数高效一些，因为它们不需要同步操作。</p>
+<p><img src="/images/fig27.png" alt="三类函数之间的关系"></p>
+<p>大多数 Linux 函数，包括定义在标准 C 库中的函数（例如 malloc、free、realloc、printf 和 scanf）都是线程安全的，只有一小部分是例外。Linux 系统提供大多数线程不安全函数的可重入版本，且函数名字总是以_r后缀结尾的。</p>
+<h3 id="竞争"><a href="#竞争" class="headerlink" title="竞争"></a>竞争</h3><p>当一个程序的正确性依赖于一个线程要在另一个线程到达 y 点之前到达它的控制流中的 x 点时，就会发生<strong>竞争（race）</strong>。通常发生竞争是因为程序员假定线程将按照某种特殊的轨迹线穿过执行状态空间，而忘记了另一条准则规定：多线程的程序必须对任何可行的轨迹线都正确工作。</p>
+<h3 id="死锁"><a href="#死锁" class="headerlink" title="死锁"></a>死锁</h3><p>信号量引入了一种潜在的令人厌恶的运行时错误，叫做<strong>死锁（deadlock）</strong>，它指的是一组线程被阻塞了，等待一个永远也不会为真的条件。</p>
+<p><img src="/images/fig28.png" alt="一个会死锁的程序的进度图"></p>
+<ul>
+<li>程序员使用 P 和 V 操作顺序不当，使得每个线程都在等待其他线程执行一个根本不可能发生的 V 操作。</li>
+<li>死锁是一个相当困难的问题，因为它不重视可预测的。你可以运行一个程序 1000 次不出任何问题，但是下一次它就死锁了。最糟糕的是，错误常常是不可重复的，因为不同的执行有不同的轨迹线。</li>
+</ul>
+<p><strong>互斥锁加锁顺序规则</strong>：给定所有互斥操作一个全序，如果每个线程都是以一种顺序获得互斥锁并以相反的顺序释放，那么这个程序就是无死锁的。</p>
+<p>例如：在每一个线程都是先对 s 加锁，再对 t 加锁。</p>
+<p><img src="/images/fig29.png" alt="一个无死锁程序的进度图"></p>
+<hr>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>一个并发程序由时间上重叠的一组逻辑流组成。本文共总结了三种不同构造并发程序的机制：进程、 I/O 多路复用和线程。</p>
+<p>进程和线程都是由内核自动调度的。其中进程有各自独立的虚拟地址空间，所以要实现共享数据，必须有显式的 IPC 机制。 事件驱动程序创建自己的并发逻辑流，这些逻辑流被模型化为状态机，用 I/O 多路复用来显式地调度这些流。因为程序运行在单一进程中，所以流之间共享数据速度很快且很容易。线程是上述两者的混合，由内核自动调度，运行在单一进程的上下文中，可以快速方便地共享数据。</p>
+<p>通过对信号量的 P 和 V 操作可以帮助解决对共享数据的并发访问问题。信号量既可以提供对共享数据的互斥访问，也可以提供对共享对象的资源访问调度。</p>
+<p>并发还引入了线程安全、竞争、死锁等问题。</p>
+<hr>
+<h2 id="参考资料"><a href="#参考资料" class="headerlink" title="参考资料"></a>参考资料</h2><blockquote>
+<p>《深入理解计算机系统》<br><a href="https://www.junhaow.com/studynotes/csapp/09_CSAPP%20:%20CSE351%20%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%EF%BC%88%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%EF%BC%89.html" target="_blank" rel="noopener">CSAPP / CSE 351 学习笔记（并发编程）</a><br><a href="https://blog.csdn.net/jinzhao1993/article/details/53648008" target="_blank" rel="noopener">深入理解计算机系统：并发编程</a></p>
+</blockquote>
+
+    </article>
+    <!-- license  -->
+    
+        <div class="license-wrapper">
+            <p>原文作者：<a href="https://www.pengchen.top">枫逸</a>
+            <p>原文链接：<a href="https://www.pengchen.top/posts/41580/">https://www.pengchen.top/posts/41580/</a>
+            <p>发表日期：<a href="https://www.pengchen.top/posts/41580/">May 2nd 2020, 4:47:45 pm</a>
+            <p>更新日期：<a href="https://www.pengchen.top/posts/41580/">September 5th 2020, 1:44:05 am</a>
+            <p>版权声明：本文采用<a rel="license noopener" href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank">知识共享署名-非商业性使用 4.0 国际许可协议</a>进行许可</p>
+        </div>
+    
+    <!-- paginator  -->
+    <ul class="post-paginator">
+        <li class="next">
+            
+                <div class="nextSlogan">Next Post</div>
+                <a href= "/posts/11653/" title= "学习笔记：进程间通信">
+                    <div class="nextTitle">学习笔记：进程间通信</div>
+                </a>
+            
+        </li>
+        <li class="previous">
+            
+                <div class="prevSlogan">Previous Post</div>
+                <a href= "/posts/47691/" title= "CSAPP 学习笔记：函数调用及栈帧原理">
+                    <div class="prevTitle">CSAPP 学习笔记：函数调用及栈帧原理</div>
+                </a>
+            
+        </li>
+    </ul>
+    <!-- 评论插件 -->
+    <!-- 来必力City版安装代码 -->
+
+    <div id="lv-container" data-id="city" data-uid= fengyi_pc@foxmail.com>
+        <script type="text/javascript">
+            (function (d, s) {
+                var j, e = d.getElementsByTagName(s)[0];
+                if (typeof LivereTower === 'function') { return; }
+                j = d.createElement(s);
+                j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+                j.async = true;
+
+                e.parentNode.insertBefore(j, e);
+            })(document, 'script');
+        </script>
+        <noscript>为正常使用来必力评论功能请激活JavaScript</noscript>
+    </div>
+
+<!-- City版安装代码已完成 -->
+    
+    
+    <!-- gitalk评论 -->
+
+    <!-- utteranc评论 -->
+
+    <!-- partial('_partial/comment/changyan') -->
+    <!--PC版-->
+
+
+    
+    
+
+    <!-- 评论 -->
+    
+</main>
+            <!-- profile -->
+            
+        </div>
+        <footer class="footer footer-unloaded">
+    <!-- social  -->
+    
+    <div class="social">
+        
+    
+        
+            
+                <a href="mailto:fengyi_pc@foxmail.com" class="iconfont-archer email" title=email ></a>
+            
+        
+    
+        
+            
+                <a href="https://github.com/fengyipc" class="iconfont-archer github" target="_blank" title=github></a>
+            
+        
+    
+        
+            
+                <span class="iconfont-archer wechat" title=wechat>
+                  
+                  <img class="profile-qr" src="/assets/mmqrcode.png" />
+                </span>
+            
+        
+    
+        
+            
+                <span class="iconfont-archer qq" title=qq>
+                  
+                  <img class="profile-qr" src="/assets/qqqrcode.jpg" />
+                </span>
+            
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+
+    </div>
+    
+    <!-- powered by Hexo  -->
+    <div class="copyright">
+        <span id="hexo-power">Powered by <a href="https://hexo.io/" target="_blank">Hexo</a></span><span class="iconfont-archer power">&#xe635;</span><span id="theme-info">theme <a href="https://github.com/fi3ework/hexo-theme-archer" target="_blank">Archer</a></span>
+    </div>
+    <!-- 不蒜子  -->
+    
+    <div class="busuanzi-container">
+    
+     
+    <span id="busuanzi_container_site_pv">PV: <span id="busuanzi_value_site_pv"></span> :)</span>
+    
+    </div>
+    
+</footer>
+    </div>
+    <!-- toc -->
+    
+    <div class="toc-wrapper" style=
+    
+
+
+
+
+
+
+
+top:50vh;
+
+    >
+        <div class="toc-catalog">
+            <span class="iconfont-archer catalog-icon">&#xe613;</span><span>CATALOG</span>
+        </div>
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#概述"><span class="toc-number">1.</span> <span class="toc-text">概述</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#基于进程的并发编程"><span class="toc-number">2.</span> <span class="toc-text">基于进程的并发编程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#基于-I-O-多路复用的并发编程"><span class="toc-number">3.</span> <span class="toc-text">基于 I&#x2F;O 多路复用的并发编程</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#基于线程的并发编程"><span class="toc-number">4.</span> <span class="toc-text">基于线程的并发编程</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#线程执行模型"><span class="toc-number">4.1.</span> <span class="toc-text">线程执行模型</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Posix-线程"><span class="toc-number">4.2.</span> <span class="toc-text">Posix 线程</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#多线程程序中的共享变量"><span class="toc-number">5.</span> <span class="toc-text">多线程程序中的共享变量</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#线程内存模型"><span class="toc-number">5.1.</span> <span class="toc-text">线程内存模型</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#变量映射到内存"><span class="toc-number">5.2.</span> <span class="toc-text">变量映射到内存</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#用信号量同步线程"><span class="toc-number">6.</span> <span class="toc-text">用信号量同步线程</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#利用信号量实现互斥"><span class="toc-number">6.1.</span> <span class="toc-text">利用信号量实现互斥</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#利用信号量调度共享资源"><span class="toc-number">6.2.</span> <span class="toc-text">利用信号量调度共享资源</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#使用线程提高并行性"><span class="toc-number">7.</span> <span class="toc-text">使用线程提高并行性</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#其他并发问题"><span class="toc-number">8.</span> <span class="toc-text">其他并发问题</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#线程安全"><span class="toc-number">8.1.</span> <span class="toc-text">线程安全</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#可重入性"><span class="toc-number">8.2.</span> <span class="toc-text">可重入性</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#竞争"><span class="toc-number">8.3.</span> <span class="toc-text">竞争</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#死锁"><span class="toc-number">8.4.</span> <span class="toc-text">死锁</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#总结"><span class="toc-number">9.</span> <span class="toc-text">总结</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#参考资料"><span class="toc-number">10.</span> <span class="toc-text">参考资料</span></a></li></ol>
+    </div>
+    
+    <div class="back-top iconfont-archer">&#xe639;</div>
+    <div class="sidebar sidebar-hide">
+    <ul class="sidebar-tabs sidebar-tabs-active-0">
+        <li class="sidebar-tab-archives"><span class="iconfont-archer">&#xe67d;</span><span class="tab-name">Archive</span></li>
+        <li class="sidebar-tab-tags"><span class="iconfont-archer">&#xe61b;</span><span class="tab-name">Tag</span></li>
+        <li class="sidebar-tab-categories"><span class="iconfont-archer">&#xe666;</span><span class="tab-name">Cate</span></li>
+    </ul>
+    <div class="sidebar-content sidebar-content-show-archive">
+          <div class="sidebar-panel-archives">
+    <!-- 在ejs中将archive按照时间排序 -->
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <div class="total-and-search">
+        <div class="total-archive">
+        Total : 15
+        </div>
+        <!-- search  -->
+        
+    </div>
+    
+    <div class="post-archive">
+    
+    
+    
+    
+    <div class="archive-year"> 2020 </div>
+    <ul class="year-list">
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">08/26</span><a class="archive-post-title" href= "/posts/1754/" >学习笔记：Effective C++ (二)：构造析构赋值运算</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">08/26</span><a class="archive-post-title" href= "/posts/37873/" >学习笔记：Effective C++ (一)：让自己习惯C++</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">07/24</span><a class="archive-post-title" href= "/posts/63042/" >学习笔记：Redis 设计与实现 —— 数据结构与对象</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">07/05</span><a class="archive-post-title" href= "/posts/13958/" >实习总结：标注平台结算统计接口开发中的查询优化与SQL优化知识总结</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">06/20</span><a class="archive-post-title" href= "/posts/23611/" >学习笔记：InnoDB存储引擎 索引与算法 （一）</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">06/15</span><a class="archive-post-title" href= "/posts/23692/" >实习总结：基于Prometheus + Grafana + JsonDatasource 搭建云资源监控系统</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/20</span><a class="archive-post-title" href= "/posts/19531/" >学习笔记：Redis 入门指南</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/07</span><a class="archive-post-title" href= "/posts/11653/" >学习笔记：进程间通信</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/02</span><a class="archive-post-title" href= "/posts/41580/" >CSAPP 学习笔记：并发编程</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">04/18</span><a class="archive-post-title" href= "/posts/47691/" >CSAPP 学习笔记：函数调用及栈帧原理</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">04/15</span><a class="archive-post-title" href= "/posts/19769/" >转载笔记：虚拟内存的那点事儿</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">03/15</span><a class="archive-post-title" href= "/posts/23296/" >剑指offer 47-48 ：不用加减乘除做加法、求1+2+3+...+n</a>
+        </li>
+    
+    
+    
+    
+    
+        </ul>
+    
+    <div class="archive-year"> 2019 </div>
+    <ul class="year-list">
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/31</span><a class="archive-post-title" href= "/posts/28656/" >RNN-based GAN 基础模型及相关论文</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/29</span><a class="archive-post-title" href= "/posts/5812/" >论文构思：GAN-based Data Augmentation for Fall Detection Datasets</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/28</span><a class="archive-post-title" href= "/posts/1521/" >论文笔记：Detecting Falls with Wearable Sensors Using Machine Learning Techniques</a>
+        </li>
+    
+    </div>
+  </div>
+        <div class="sidebar-panel-tags">
+    <div class="sidebar-tags-name">
+    
+        <span class="sidebar-tag-name" data-tags="操作系统"><span class="iconfont-archer">&#xe606;</span>操作系统</span>
+    
+        <span class="sidebar-tag-name" data-tags="学习笔记"><span class="iconfont-archer">&#xe606;</span>学习笔记</span>
+    
+        <span class="sidebar-tag-name" data-tags="并发编程"><span class="iconfont-archer">&#xe606;</span>并发编程</span>
+    
+        <span class="sidebar-tag-name" data-tags="Fall Detection"><span class="iconfont-archer">&#xe606;</span>Fall Detection</span>
+    
+        <span class="sidebar-tag-name" data-tags="Machine Learning"><span class="iconfont-archer">&#xe606;</span>Machine Learning</span>
+    
+        <span class="sidebar-tag-name" data-tags="Deep Learning"><span class="iconfont-archer">&#xe606;</span>Deep Learning</span>
+    
+        <span class="sidebar-tag-name" data-tags="C++"><span class="iconfont-archer">&#xe606;</span>C++</span>
+    
+        <span class="sidebar-tag-name" data-tags="剑指offer"><span class="iconfont-archer">&#xe606;</span>剑指offer</span>
+    
+        <span class="sidebar-tag-name" data-tags="算法笔记"><span class="iconfont-archer">&#xe606;</span>算法笔记</span>
+    
+        <span class="sidebar-tag-name" data-tags="计算机组成原理"><span class="iconfont-archer">&#xe606;</span>计算机组成原理</span>
+    
+        <span class="sidebar-tag-name" data-tags="MySQL"><span class="iconfont-archer">&#xe606;</span>MySQL</span>
+    
+        <span class="sidebar-tag-name" data-tags="数据库"><span class="iconfont-archer">&#xe606;</span>数据库</span>
+    
+        <span class="sidebar-tag-name" data-tags="Redis"><span class="iconfont-archer">&#xe606;</span>Redis</span>
+    
+        <span class="sidebar-tag-name" data-tags="实习总结"><span class="iconfont-archer">&#xe606;</span>实习总结</span>
+    
+        <span class="sidebar-tag-name" data-tags="运维"><span class="iconfont-archer">&#xe606;</span>运维</span>
+    
+        <span class="sidebar-tag-name" data-tags="集群监控"><span class="iconfont-archer">&#xe606;</span>集群监控</span>
+    
+        <span class="sidebar-tag-name" data-tags="GO语言"><span class="iconfont-archer">&#xe606;</span>GO语言</span>
+    
+        <span class="sidebar-tag-name" data-tags="后台开发"><span class="iconfont-archer">&#xe606;</span>后台开发</span>
+    
+        <span class="sidebar-tag-name" data-tags="转载笔记"><span class="iconfont-archer">&#xe606;</span>转载笔记</span>
+    
+    </div>
+    <div class="iconfont-archer sidebar-tags-empty">&#xe678;</div>
+    <div class="tag-load-fail" style="display: none; color: #ccc; font-size: 0.6rem;">
+    缺失模块。<br/>
+    1、请确保node版本大于6.2<br/>
+    2、在博客根目录（注意不是archer根目录）执行以下命令：<br/>
+    <span style="color: #f75357; font-size: 1rem; line-height: 2rem;">npm i hexo-generator-json-content --save</span><br/>
+    3、在根目录_config.yml里添加配置：
+    <pre style="color: #787878; font-size: 0.6rem;">
+jsonContent:
+  meta: false
+  pages: false
+  posts:
+    title: true
+    date: true
+    path: true
+    text: false
+    raw: false
+    content: false
+    slug: false
+    updated: false
+    comments: false
+    link: false
+    permalink: false
+    excerpt: false
+    categories: true
+    tags: true</pre>
+    </div> 
+    <div class="sidebar-tags-list"></div>
+</div>
+        <div class="sidebar-panel-categories">
+    <div class="sidebar-categories-name">
+    
+        <span class="sidebar-category-name" data-categories="学习笔记"><span class="iconfont-archer">&#xe60a;</span>学习笔记</span>
+    
+        <span class="sidebar-category-name" data-categories="机器学习"><span class="iconfont-archer">&#xe60a;</span>机器学习</span>
+    
+        <span class="sidebar-category-name" data-categories="实习总结"><span class="iconfont-archer">&#xe60a;</span>实习总结</span>
+    
+        <span class="sidebar-category-name" data-categories="转载笔记"><span class="iconfont-archer">&#xe60a;</span>转载笔记</span>
+    
+    </div>
+    <div class="iconfont-archer sidebar-categories-empty">&#xe678;</div>
+    <div class="sidebar-categories-list"></div>
+</div>
+    </div>
+</div> 
+    <script>
+    var siteMeta = {
+        root: "/",
+        author: "枫逸"
+    }
+</script>
+    <!-- CDN failover -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script>
+    <script type="text/javascript">
+        if (typeof window.$ === 'undefined')
+        {
+            console.warn('jquery load from jsdelivr failed, will load local script')
+            document.write('<script src="/lib/jquery.min.js">\x3C/script>')
+        }
+    </script>
+    <script src="/scripts/main.js"></script>
+    <!-- algolia -->
+    
+    <!-- busuanzi  -->
+    
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    
+    <!-- CNZZ  -->
+    
+    </div>
+    <!-- async load share.js -->
+    
+        <script src="/scripts/share.js" async></script><!-- hexo-inject:begin --><!-- hexo-inject:end -->    
+     
+    </body>
+</html>
+
+

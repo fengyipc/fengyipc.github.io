@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+    <!-- title -->
+
+
+
+
+<!-- keywords -->
+
+
+
+
+<head>
+    <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" >
+    <meta name="author" content="枫逸">
+    <meta name="renderer" content="webkit">
+    <meta name="copyright" content="枫逸">
+    
+    <meta name="keywords" content="Maple's Story,枫逸">
+    
+    <meta name="description" content="不要温和地走进那个良夜。">
+    <meta name="description" content="为了支持标注平台运营团队对上半年所有标注任务的结算，最近两周我按照运营团队的需求为标注平台后端新增了导出结算数据统计报表的接口。在这过程中，由于涉及MySQL数据库中数万个任务以及上千万个样本数据的查询，而我在这么庞大的数据处理上缺少经验，接口的编写曾遇到不小的挑战，最初版本的耗时预计在14小时以上，在同事的指导以及查阅各种博客学习SQL优化知识后，经过一次次优化，最终将耗时缩短近百倍。在这个">
+<meta property="og:type" content="article">
+<meta property="og:title" content="实习总结：标注平台结算统计接口开发中的查询优化与SQL优化知识总结">
+<meta property="og:url" content="https://www.pengchen.top/posts/13958/index.html">
+<meta property="og:site_name" content="Maple&#39;s Story">
+<meta property="og:description" content="为了支持标注平台运营团队对上半年所有标注任务的结算，最近两周我按照运营团队的需求为标注平台后端新增了导出结算数据统计报表的接口。在这过程中，由于涉及MySQL数据库中数万个任务以及上千万个样本数据的查询，而我在这么庞大的数据处理上缺少经验，接口的编写曾遇到不小的挑战，最初版本的耗时预计在14小时以上，在同事的指导以及查阅各种博客学习SQL优化知识后，经过一次次优化，最终将耗时缩短近百倍。在这个">
+<meta property="og:image" content="https://www.pengchen.top/images/fig18.png">
+<meta property="og:image" content="https://www.pengchen.top/images/fig19.jpg">
+<meta property="article:published_time" content="2020-07-05T10:08:56.000Z">
+<meta property="article:modified_time" content="2020-09-04T17:44:05.368Z">
+<meta property="article:author" content="枫逸">
+<meta property="article:tag" content="MySQL">
+<meta property="article:tag" content="数据库">
+<meta property="article:tag" content="实习总结">
+<meta property="article:tag" content="后台开发">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://www.pengchen.top/images/fig18.png">
+    <meta http-equiv="Cache-control" content="no-cache">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    
+    <title>实习总结：标注平台结算统计接口开发中的查询优化与SQL优化知识总结 · Maple&#39;s Story</title>
+    <style type="text/css">
+    @font-face {
+        font-family: 'Oswald-Regular';
+        src: url("/font/Oswald-Regular.ttf");
+    }
+
+    body {
+        margin: 0;
+    }
+
+    header,
+    footer,
+    .back-top,
+    .sidebar,
+    .container,
+    .site-intro-meta,
+    .toc-wrapper {
+        display: none;
+    }
+
+    .site-intro {
+        position: relative;
+        z-index: 3;
+        width: 100%;
+        /* height: 50vh; */
+        overflow: hidden;
+    }
+
+    .site-intro-placeholder {
+        position: absolute;
+        z-index: -2;
+        top: 0;
+        left: 0;
+        width: calc(100% + 300px);
+        height: 100%;
+        background: repeating-linear-gradient(-45deg, #444 0, #444 80px, #333 80px, #333 160px);
+        background-position: center center;
+        transform: translate3d(-226px, 0, 0);
+        animation: gradient-move 2.5s ease-out 0s infinite;
+    }
+
+    @keyframes gradient-move {
+        0% {
+            transform: translate3d(-226px, 0, 0);
+        }
+        100% {
+            transform: translate3d(0, 0, 0);
+        }
+    }
+
+</style>
+
+    <link rel="preload" href= "/css/style.css?v=20180824" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+    <link rel="stylesheet" href= "/css/mobile.css?v=20180824" media="(max-width: 980px)">
+    
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.2.5/jquery.fancybox.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+    
+    <!-- /*! loadCSS. [c]2017 Filament Group, Inc. MIT License */
+/* This file is meant as a standalone workflow for
+- testing support for link[rel=preload]
+- enabling async CSS loading in browsers that do not support rel=preload
+- applying rel preload css once loaded, whether supported or not.
+*/ -->
+<script>
+(function( w ){
+	"use strict";
+	// rel=preload support test
+	if( !w.loadCSS ){
+		w.loadCSS = function(){};
+	}
+	// define on the loadCSS obj
+	var rp = loadCSS.relpreload = {};
+	// rel=preload feature support test
+	// runs once and returns a function for compat purposes
+	rp.support = (function(){
+		var ret;
+		try {
+			ret = w.document.createElement( "link" ).relList.supports( "preload" );
+		} catch (e) {
+			ret = false;
+		}
+		return function(){
+			return ret;
+		};
+	})();
+
+	// if preload isn't supported, get an asynchronous load by using a non-matching media attribute
+	// then change that media back to its intended value on load
+	rp.bindMediaToggle = function( link ){
+		// remember existing media attr for ultimate state, or default to 'all'
+		var finalMedia = link.media || "all";
+
+		function enableStylesheet(){
+			link.media = finalMedia;
+		}
+
+		// bind load handlers to enable media
+		if( link.addEventListener ){
+			link.addEventListener( "load", enableStylesheet );
+		} else if( link.attachEvent ){
+			link.attachEvent( "onload", enableStylesheet );
+		}
+
+		// Set rel and non-applicable media type to start an async request
+		// note: timeout allows this to happen async to let rendering continue in IE
+		setTimeout(function(){
+			link.rel = "stylesheet";
+			link.media = "only x";
+		});
+		// also enable media after 3 seconds,
+		// which will catch very old browsers (android 2.x, old firefox) that don't support onload on link
+		setTimeout( enableStylesheet, 3000 );
+	};
+
+	// loop through link elements in DOM
+	rp.poly = function(){
+		// double check this to prevent external calls from running
+		if( rp.support() ){
+			return;
+		}
+		var links = w.document.getElementsByTagName( "link" );
+		for( var i = 0; i < links.length; i++ ){
+			var link = links[ i ];
+			// qualify links to those with rel=preload and as=style attrs
+			if( link.rel === "preload" && link.getAttribute( "as" ) === "style" && !link.getAttribute( "data-loadcss" ) ){
+				// prevent rerunning on link
+				link.setAttribute( "data-loadcss", true );
+				// bind listeners to toggle media back
+				rp.bindMediaToggle( link );
+			}
+		}
+	};
+
+	// if unsupported, run the polyfill
+	if( !rp.support() ){
+		// run once at least
+		rp.poly();
+
+		// rerun poly on an interval until onload
+		var run = w.setInterval( rp.poly, 500 );
+		if( w.addEventListener ){
+			w.addEventListener( "load", function(){
+				rp.poly();
+				w.clearInterval( run );
+			} );
+		} else if( w.attachEvent ){
+			w.attachEvent( "onload", function(){
+				rp.poly();
+				w.clearInterval( run );
+			} );
+		}
+	}
+
+
+	// commonjs
+	if( typeof exports !== "undefined" ){
+		exports.loadCSS = loadCSS;
+	}
+	else {
+		w.loadCSS = loadCSS;
+	}
+}( typeof global !== "undefined" ? global : this ) );
+</script>
+
+    <link rel="icon" href= "/assets/001.ico" />
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/webfontloader@1.6.28/webfontloader.min.js" as="script" />
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js" as="script" />
+    <link rel="preload" href="/scripts/main.js" as="script" />
+    <link rel="preload" as="font" href="/font/Oswald-Regular.ttf" crossorigin>
+    <link rel="preload" as="font" href="https://at.alicdn.com/t/font_327081_1dta1rlogw17zaor.woff" crossorigin>
+    
+    <!-- fancybox -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.2.5/jquery.fancybox.min.js" defer></script>
+    <!-- 百度统计  -->
+    
+    <!-- 谷歌统计  -->
+    
+<meta name="generator" content="Hexo 4.2.1"><!-- hexo-inject:begin --><!-- hexo-inject:end --></head>
+
+    
+        <body class="post-body">
+    
+    
+<!-- hexo-inject:begin --><!-- hexo-inject:end --><header class="header">
+
+    <div class="read-progress"></div>
+    <div class="header-sidebar-menu">&#xe775;</div>
+    <!-- post页的toggle banner  -->
+    
+    <div class="banner">
+            <div class="blog-title">
+                <a href="/" >Maple&#39;s Story</a>
+            </div>
+            <div class="post-title">
+                <a href="#" class="post-name">实习总结：标注平台结算统计接口开发中的查询优化与SQL优化知识总结</a>
+            </div>
+    </div>
+    
+    <a class="home-link" href=/>Maple's Story</a>
+</header>
+    <div class="wrapper">
+        <div class="site-intro" style="
+
+
+
+
+
+
+
+height:50vh;
+">
+    
+    <!-- 主页  -->
+    
+    
+    <!-- 404页  -->
+            
+    <div class="site-intro-placeholder"></div>
+    <div class="site-intro-img" style="background-image: url(https://source.unsplash.com/random)"></div>
+    <div class="site-intro-meta">
+        <!-- 标题  -->
+        <h1 class="intro-title">
+            <!-- 主页  -->
+            
+            实习总结：标注平台结算统计接口开发中的查询优化与SQL优化知识总结
+            <!-- 404 -->
+            
+        </h1>
+        <!-- 副标题 -->
+        <p class="intro-subtitle">
+            <!-- 主页副标题  -->
+            
+            
+            <!-- 404 -->
+            
+        </p>
+        <!-- 文章页meta -->
+        
+            <div class="post-intros">
+                <!-- 文章页标签  -->
+                
+                    <div class= post-intro-tags >
+    
+        <a class="post-tag" href="javascript:void(0);" data-tags = "MySQL">MySQL</a>
+    
+        <a class="post-tag" href="javascript:void(0);" data-tags = "数据库">数据库</a>
+    
+        <a class="post-tag" href="javascript:void(0);" data-tags = "实习总结">实习总结</a>
+    
+        <a class="post-tag" href="javascript:void(0);" data-tags = "后台开发">后台开发</a>
+    
+</div>
+                
+                
+                    <div class="post-intro-read">
+                        <span>字数统计: <span class="post-count word-count">6.5k</span>阅读时长: <span class="post-count reading-time">22 min</span></span>
+                    </div>
+                
+                <div class="post-intro-meta">
+                    <span class="post-intro-calander iconfont-archer">&#xe676;</span>
+                    <span class="post-intro-time">2020/07/05</span>
+                    
+                    <span id="busuanzi_container_page_pv" class="busuanzi-pv">
+                        <span class="iconfont-archer">&#xe602;</span>
+                        <span id="busuanzi_value_page_pv"></span>
+                    </span>
+                    
+                    <span class="shareWrapper">
+                        <span class="iconfont-archer shareIcon">&#xe71d;</span>
+                        <span class="shareText">Share</span>
+                        <ul class="shareList">
+                            <li class="iconfont-archer share-qr" data-type="qr">&#xe75b;
+                                <div class="share-qrcode"></div>
+                            </li>
+                            <li class="iconfont-archer" data-type="weibo">&#xe619;</li>
+                            <li class="iconfont-archer" data-type="qzone">&#xe62e;</li>
+                            <li class="iconfont-archer" data-type="twitter">&#xe634;</li>
+                            <li class="iconfont-archer" data-type="facebook">&#xe67a;</li>
+                        </ul>
+                    </span>
+                </div>
+            </div>
+        
+    </div>
+</div>
+        <script>
+ 
+  // get user agent
+  var browser = {
+    versions: function () {
+      var u = window.navigator.userAgent;
+      return {
+        userAgent: u,
+        trident: u.indexOf('Trident') > -1, //IE内核
+        presto: u.indexOf('Presto') > -1, //opera内核
+        webKit: u.indexOf('AppleWebKit') > -1, //苹果、谷歌内核
+        gecko: u.indexOf('Gecko') > -1 && u.indexOf('KHTML') == -1, //火狐内核
+        mobile: !!u.match(/AppleWebKit.*Mobile.*/), //是否为移动终端
+        ios: !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/), //ios终端
+        android: u.indexOf('Android') > -1 || u.indexOf('Linux') > -1, //android终端或者uc浏览器
+        iPhone: u.indexOf('iPhone') > -1 || u.indexOf('Mac') > -1, //是否为iPhone或者安卓QQ浏览器
+        iPad: u.indexOf('iPad') > -1, //是否为iPad
+        webApp: u.indexOf('Safari') == -1, //是否为web应用程序，没有头部与底部
+        weixin: u.indexOf('MicroMessenger') == -1, //是否为微信浏览器
+        uc: u.indexOf('UCBrowser') > -1 //是否为android下的UC浏览器
+      };
+    }()
+  }
+  console.log("userAgent:" + browser.versions.userAgent);
+
+  // callback
+  function fontLoaded() {
+    console.log('font loaded');
+    if (document.getElementsByClassName('site-intro-meta')) {
+      document.getElementsByClassName('intro-title')[0].classList.add('intro-fade-in');
+      document.getElementsByClassName('intro-subtitle')[0].classList.add('intro-fade-in');
+      var postIntros = document.getElementsByClassName('post-intros')[0]
+      if (postIntros) {
+        postIntros.classList.add('post-fade-in');
+      }
+    }
+  }
+
+  // UC不支持跨域，所以直接显示
+  function asyncCb(){
+    if (browser.versions.uc) {
+      console.log("UCBrowser");
+      fontLoaded();
+    } else {
+      WebFont.load({
+        custom: {
+          families: ['Oswald-Regular']
+        },
+        loading: function () {  //所有字体开始加载
+          // console.log('loading');
+        },
+        active: function () {  //所有字体已渲染
+          fontLoaded();
+        },
+        inactive: function () { //字体预加载失败，无效字体或浏览器不支持加载
+          console.log('inactive: timeout');
+          fontLoaded();
+        },
+        timeout: 5000 // Set the timeout to two seconds
+      });
+    }
+  }
+
+  function asyncErr(){
+    console.warn('script load from CDN failed, will load local script')
+  }
+
+  // load webfont-loader async, and add callback function
+  function async(u, cb, err) {
+    var d = document, t = 'script',
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (cb) { o.addEventListener('load', function (e) { cb(null, e); }, false); }
+    if (err) { o.addEventListener('error', function (e) { err(null, e); }, false); }
+    s.parentNode.insertBefore(o, s);
+  }
+
+  var asyncLoadWithFallBack = function(arr, success, reject) {
+      var currReject = function(){
+        reject()
+        arr.shift()
+        if(arr.length)
+          async(arr[0], success, currReject)
+        }
+
+      async(arr[0], success, currReject)
+  }
+
+  asyncLoadWithFallBack([
+    "https://cdn.jsdelivr.net/npm/webfontloader@1.6.28/webfontloader.min.js", 
+    "https://cdn.bootcss.com/webfont/1.6.28/webfontloader.js",
+    "/lib/webfontloader.min.js"
+  ], asyncCb, asyncErr)
+</script>        
+        <img class="loading" src="/assets/loading.svg" style="display: block; margin: 6rem auto 0 auto; width: 6rem; height: 6rem;" />
+        <div class="container container-unloaded">
+            <main class="main post-page">
+    <article class="article-entry">
+        <p>　　为了支持标注平台运营团队对上半年所有标注任务的结算，最近两周我按照运营团队的需求为标注平台后端新增了导出结算数据统计报表的接口。在这过程中，由于涉及MySQL数据库中数万个任务以及上千万个样本数据的查询，而我在这么庞大的数据处理上缺少经验，接口的编写曾遇到不小的挑战，最初版本的耗时预计在14小时以上，在同事的指导以及查阅各种博客学习SQL优化知识后，经过一次次优化，最终将耗时缩短近百倍。在这个过程中也发现数据库的设计上存在一些缺陷，影响SQL查询性能，后续的工作中如果有机会，将对其进行进一步的优化。</p>
+<p>　　本篇文章主要是总结和记录在开发过程中所学习和使用的MySQL优化原理知识。</p>
+<h1 id="MySQL优化原理"><a href="#MySQL优化原理" class="headerlink" title="MySQL优化原理"></a>MySQL优化原理</h1><h2 id="MySQL逻辑架构"><a href="#MySQL逻辑架构" class="headerlink" title="MySQL逻辑架构"></a>MySQL逻辑架构</h2><p><img src="/images/fig18.png" alt=""></p>
+<p>　　MySQL逻辑架构整体分为三层，最上层为客户端层，并非MySQL所独有，诸如：连接处理、授权认证、安全等功能均在这一层处理。</p>
+<p>　　MySQL大多数核心服务均在中间这一层，包括查询解析、分析、优化、缓存、内置函数(比如：时间、数学、加密等函数)。所有的跨存储引擎的功能也在这一层实现：存储过程、触发器、视图等。</p>
+<p>　　最下层为存储引擎，其负责MySQL中的数据存储和提取。和Linux下的文件系统类似，每种存储引擎都有其优势和劣势。中间的服务层通过API与存储引擎通信，这些API接口屏蔽了不同存储引擎间的差异。</p>
+<hr>
+<h2 id="MySQL查询过程"><a href="#MySQL查询过程" class="headerlink" title="MySQL查询过程"></a>MySQL查询过程</h2><p>当向MySQL发送一个请求的时候，MySQL到底做了些什么呢？</p>
+<p><img src="/images/fig19.jpg" alt="" title="MySQL查询过程示意图"></p>
+<h3 id="查询缓存"><a href="#查询缓存" class="headerlink" title="查询缓存"></a>查询缓存</h3><p>　　在解析一个查询语句前，如果查询缓存是打开的，那么MySQL会检查这个查询语句是否命中查询缓存中的数据。如果命中查询缓存，则在检查一次用户权限后直接返回缓存中的结果。这种情况下，查询不会被解析，也不会生成执行计划，更不会执行。</p>
+<p>　　MySQL将缓存放置在一个哈希表中，而这个哈希值是通过查询本身、当前要查询的数据库、客户端协议版本号等一些可能影响结果的信息计算得来。所以两个查询在任何字符上的不同（例如：空格、注释），都会导致缓存不会命中。</p>
+<p>　　当一张表中的数据或结构发生变化时，与这张表相关的所有缓存数据都会失效。因此，在任何写操作时，MySQL都会将对应表的缓存置为失效，如果缓存非常大或者碎片很多，这个操作也会带来极大的系统消耗。与此同时，查询缓存的读操作也会带来不少额外消耗（如同计算机系统内的其它缓存机制一样）：</p>
+<ol>
+<li>任何查询语句在开始之前都会经过检查，即使永远不会命中。</li>
+<li>如果查询结果可以被缓存，那么执行完成后，需要将结果写入缓存。</li>
+</ol>
+<p>　　因此，只有当缓存带来的资源节约大于其本身消耗的资源时，才会给系统带来性能提升。如确实需要打开查询缓存，根据上述原理，我们可以在数据库设计上做如下优化：</p>
+<ol>
+<li>用多个小表代替一个大表。</li>
+<li>批量插入代替循环单条插入。</li>
+<li>合理地控制缓存空间大小。</li>
+<li>可以通过SQL_CACHE和SQL_NO_CACHE来控制某个查询语句是否需要缓存。</li>
+</ol>
+<h3 id="语法解析和预处理"><a href="#语法解析和预处理" class="headerlink" title="语法解析和预处理"></a>语法解析和预处理</h3><p>　　这一阶段，主要对SQL语句进行解析，生成对应的解析树。并通过语法规则检查语句的合法性。如关键词是否使用正确、关键词顺序是否正确、所要查询的表、数据列是否均存在等。</p>
+<h3 id="查询优化"><a href="#查询优化" class="headerlink" title="查询优化"></a>查询优化</h3><p>　　多数情况下，一条查询有许多种执行方式，最终都可以返回所需的结果。而优化器的作用就是从中寻找出最好的执行计划。</p>
+<p>　　MySQL使用基于成本的优化器，它尝试预测一个查询使用某种执行计划时的成本，并选择其中成本最小的一个。在MySQL可以通过查询当前会话的last_query_cost的值来得到其计算当前查询的成本。</p>
+<figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">mysql&gt; select * from t_message limit 10;</span><br><span class="line"></span><br><span class="line">...省略结果集</span><br><span class="line"></span><br><span class="line">mysql&gt; show status like 'last_query_cost';</span><br><span class="line"></span><br><span class="line">+<span class="comment">-----------------+-------------+</span></span><br><span class="line">| Variable_name   | Value       |</span><br><span class="line">+<span class="comment">-----------------+-------------+</span></span><br><span class="line">| Last_query_cost | 6391.799000 |</span><br><span class="line">+<span class="comment">-----------------+-------------+</span></span><br></pre></td></tr></table></figure>
+<p>　　示例中的结果表示优化器认为大概需要做6391个数据页的随机查找才能完成上面的查询。这个结果是根据一些列的统计信息计算得来的，这些统计信息包括：每张表或者索引的页面个数、索引的基数、索引和数据行的长度、索引的分布情况等等。</p>
+<p>　　MySQL的查询优化器是一个非常复杂的部件，它使用了非常多的优化策略来生成一个最优的执行计划：</p>
+<ul>
+<li>重新定义表的关联顺序（多张表关联查询时，并不一定按照SQL中指定的顺序进行，但有一些技巧可以指定关联顺序）</li>
+<li>优化MIN()和MAX()函数（找某列的最小值，如果该列有索引，只需要查找B+Tree索引最左端，反之则可以找到最大值）</li>
+<li>提前终止查询（比如：使用Limit时，查找到满足数量的结果集后会立即终止查询）</li>
+<li>优化排序（在老版本MySQL会使用两次传输排序，即先读取行指针和需要排序的字段在内存中对其排序，然后再根据排序结果去读取数据行，而新版本采用的是单次传输排序，也就是一次读取所有的数据行，然后根据给定的列排序。对于I/O密集型应用，效率会高很多）</li>
+<li>等等……</li>
+</ul>
+<h3 id="查询执行引擎"><a href="#查询执行引擎" class="headerlink" title="查询执行引擎"></a>查询执行引擎</h3><p>　　完成上述解析和优化的工作之后，MySQL会生成对应的执行计划，查询执行引擎根据执行计划给出的指令逐步执行得出结果。</p>
+<h3 id="返回结果"><a href="#返回结果" class="headerlink" title="返回结果"></a>返回结果</h3><p>　　查询执行进行完成后，会将结果返回给客户端。即使查询不到数据，也会返回查询相关信息，如查询影响到的行数以及查询时间等。</p>
+<p>　　如果查询缓存被打开，且该查询可以被缓存，此阶段MySQL也会将结果存放至缓存中。</p>
+<p>　　从MySQL生成第一条结果时，就开始向客户端逐步返回结果集，这样服务端就无须存储太多结果而消耗过多内存，也可以让客户端第一时间获得返回结果。但是在通过TCP协议传输的过程中，可能会对MySQL的数据包进行缓存然后批量发送。</p>
+<h3 id="总结整个流程，分为六个步骤："><a href="#总结整个流程，分为六个步骤：" class="headerlink" title="总结整个流程，分为六个步骤："></a><strong>总结整个流程，分为六个步骤：</strong></h3><ul>
+<li>客户端向MySQL服务器发送一条查询请求</li>
+<li>服务器首先检查查询缓存，如果命中缓存，则立刻返回存储在缓存中的结果。否则进入下一阶段</li>
+<li>服务器进行SQL解析、预处理、再由优化器生成对应的执行计划</li>
+<li>MySQL根据执行计划，调用存储引擎的API来执行查询</li>
+<li>将结果返回给客户端，同时缓存查询结果</li>
+</ul>
+<hr>
+<h1 id="性能优化技巧"><a href="#性能优化技巧" class="headerlink" title="性能优化技巧"></a>性能优化技巧</h1><h2 id="Scheme设计与数据类型优化"><a href="#Scheme设计与数据类型优化" class="headerlink" title="Scheme设计与数据类型优化"></a>Scheme设计与数据类型优化</h2><p>　　选择数据类型只要遵循小而简单的原则就好，越小的数据类型通常会更快，占用更少的磁盘、内存，处理时需要的CPU周期也更少。越简单的数据类型在计算时需要更少的CPU周期，比如，整型就比字符操作代价低。</p>
+<p>例如：</p>
+<ol>
+<li>使用整型来存储ip地址，使用DATETIME来存储时间，而不是使用字符串。</li>
+<li>尽量不要使用DECIMAL数据类型。即使是在需要存储财务数据时，仍然可以使用BIGINT。比如需要精确到万分之一，那么可以将数据乘以一百万然后使用BIGINT存储。这样可以避免浮点数计算不准确和DECIMAL精确计算代价高的问题。</li>
+<li>大多数情况下没有使用枚举类型的必要，其中一个缺点是枚举的字符串列表是固定的，添加和删除字符串（枚举选项）必须使用ALTER TABLE。</li>
+<li>schema的列不要太多。原因是存储引擎的API工作时需要在服务器层和存储引擎层之间通过行缓冲格式拷贝数据，然后在服务器层将缓冲内容解码成各个列，这个转换过程的代价是非常高的。</li>
+</ol>
+<h2 id="基于索引的高性能策略"><a href="#基于索引的高性能策略" class="headerlink" title="基于索引的高性能策略"></a>基于索引的高性能策略</h2><p>　　索引是提高MySQL查询性能的一个重要途径，但过多的索引可能会导致过高的磁盘使用率以及过高的内存占用，从而影响应用程序的整体性能。应当尽量避免事后才想起添加索引，因为事后可能需要监控大量的SQL才能定位到问题所在，而且添加索引的时间肯定是远大于初始添加索引所需要的时间。</p>
+<p>　　索引相关的数据结构与算法原理，即B树、B+树等相关知识再次就不再赘述。重点关注与索引相关的性能优化策略。</p>
+<h3 id="MySQL不会使用索引的情况：非独立的列"><a href="#MySQL不会使用索引的情况：非独立的列" class="headerlink" title="MySQL不会使用索引的情况：非独立的列"></a>MySQL不会使用索引的情况：非独立的列</h3><p>　　“独立的列”是指索引列不能是表达式的一部分，也不能是函数的参数。比如：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> * <span class="keyword">from</span> <span class="keyword">where</span> <span class="keyword">id</span> + <span class="number">1</span> = <span class="number">5</span></span><br></pre></td></tr></table></figure><br>　　即使我们很容易看出其等价于 id = 4， 但MySQL无法自动解析，以使用索引。</p>
+<h3 id="使用前缀索引"><a href="#使用前缀索引" class="headerlink" title="使用前缀索引"></a>使用前缀索引</h3><p>　　如果列很长，通常可以索引开始的部分字符，这样可以有效节约索引空间，从而提高索引效率。</p>
+<h3 id="多列索引和索引顺序"><a href="#多列索引和索引顺序" class="headerlink" title="多列索引和索引顺序"></a>多列索引和索引顺序</h3><p>　　当在多个列上建立独立的索引时，新版本的MySQL会采取合并索引的策略，举个简单的例子，在一张电影演员表中，在actor_id和film_id两个列上都建立了独立的索引，然后有如下查询：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> film_id,actor_id</span><br><span class="line"><span class="keyword">from</span> film_actor</span><br><span class="line"><span class="keyword">where</span> actor_id = <span class="number">1</span> <span class="keyword">or</span> film_id = <span class="number">1</span></span><br></pre></td></tr></table></figure><br>　　老版本的MySQL会随机选择一个索引，但新版本做如下的优化：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> film_id,actor_id <span class="keyword">from</span> film_actor <span class="keyword">where</span> actor_id = <span class="number">1</span> </span><br><span class="line"><span class="keyword">union</span> <span class="keyword">all</span></span><br><span class="line"><span class="keyword">select</span> film_id,actor_id <span class="keyword">from</span> film_actor <span class="keyword">where</span> film_id = <span class="number">1</span> <span class="keyword">and</span> actor_id &lt;&gt; <span class="number">1</span></span><br></pre></td></tr></table></figure></p>
+<ul>
+<li>当出现多个索引做相交操作时（多个AND条件），通常来说一个包含所有相关列的索引要优于多个独立索引。</li>
+<li>当出现多个索引做联合操作时（多个OR条件），对结果集的合并、排序等操作需要耗费大量的CPU和内存资源，特别是当其中的某些索引的选择性不高，需要返回合并大量数据时，查询成本更高。所以这种情况下还不如走全表扫描。</li>
+</ul>
+<p>　　索引的顺序对于查询是至关重要的，很明显应该把选择性更高的字段放到索引的前面，这样通过第一个字段就可以过滤掉大多数不符合条件的数据。</p>
+<p>　　索引选择性是指不重复的索引值和数据表的总记录数的比值，选择性越高查询效率越高，因为选择性越高的索引可以让MySQL在查询时过滤掉更多的行。唯一索引的选择性是1，这时最好的索引选择性，性能也是最好的。</p>
+<h3 id="避免多个范围条件"><a href="#避免多个范围条件" class="headerlink" title="避免多个范围条件"></a>避免多个范围条件</h3><p>　　实际开发中，我们会经常使用多个范围条件，比如想查询某个时间段内登录过的用户：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">select</span> user.* <span class="keyword">from</span> <span class="keyword">user</span> </span><br><span class="line"><span class="keyword">where</span> login_time &gt; <span class="string">'2017-04-01'</span> <span class="keyword">and</span> age <span class="keyword">between</span> <span class="number">18</span> <span class="keyword">and</span> <span class="number">30</span>;</span><br></pre></td></tr></table></figure><br>　　这个查询有一个问题：它有两个范围条件，login_time列和age列，MySQL可以使用login_time列的索引或者age列的索引，但无法同时使用它们。</p>
+<h3 id="覆盖索引"><a href="#覆盖索引" class="headerlink" title="覆盖索引"></a>覆盖索引</h3><p>　　如果一个索引包含或者说覆盖所有需要查询的字段的值，那么就没有必要再回表查询，这就称为覆盖索引。覆盖索引是非常有用的工具，可以极大的提高性能，因为查询只需要扫描索引会带来许多好处：</p>
+<ul>
+<li>索引条目远小于数据行大小，如果只读取索引，极大减少数据访问量</li>
+<li>索引是有按照列值顺序存储的，对于I/O密集型的范围查询要比随机从磁盘读取每一行数据的IO要少的多。</li>
+</ul>
+<h3 id="使用索引扫描来排序"><a href="#使用索引扫描来排序" class="headerlink" title="使用索引扫描来排序"></a>使用索引扫描来排序</h3><p>　　MySQL有两种方式可以生产有序的结果集，其一是对结果集进行排序的操作，其二是按照索引顺序扫描得出的结果自然是有序的。如果explain的结果中type列的值为index表示使用了索引扫描来做排序。</p>
+<p>　　扫描索引本身很快，因为只需要从一条索引记录移动到相邻的下一条记录。但如果索引本身不能覆盖所有需要查询的列，那么就不得不每扫描一条索引记录就回表查询一次对应的行。这个读取操作基本上是随机I/O，因此按照索引顺序读取数据的速度通常要比顺序地全表扫描要慢。</p>
+<p>　　在设计索引时，如果一个索引既能够满足排序，又满足查询，是最好的。</p>
+<p>　　只有当索引的列顺序和ORDER BY子句的顺序完全一致，并且所有列的排序方向也一样时，才能够使用索引来对结果做排序。如果查询需要关联多张表，则只有ORDER BY子句引用的字段全部为第一张表时，才能使用索引做排序。ORDER BY子句和查询的限制是一样的，都要满足最左前缀的要求（有一种情况例外，就是最左的列被指定为常数），其它情况下都需要执行排序操作，而无法利用索引排序。</p>
+<h3 id="避免冗余和重复索引"><a href="#避免冗余和重复索引" class="headerlink" title="避免冗余和重复索引"></a>避免冗余和重复索引</h3><p>　　冗余索引是指在相同的列上按照相同的顺序创建的相同类型的索引，应当尽量避免这种索引，发现后立即删除。比如有一个索引(A,B)，再创建索引(A)就是冗余索引。冗余索引经常发生在为表添加新索引时，比如有人新建了索引(A,B)，但这个索引不是扩展已有的索引(A)。</p>
+<p>　　大多数情况下都应该尽量扩展已有的索引而不是创建新索引。但有极少情况下出现性能方面的考虑需要冗余索引，比如扩展已有索引而导致其变得过大，从而影响到其他使用该索引的查询。</p>
+<h3 id="删除长期未使用的索引"><a href="#删除长期未使用的索引" class="headerlink" title="删除长期未使用的索引"></a>删除长期未使用的索引</h3><p>　　定期删除一些长时间未使用过的索引是一个非常好的习惯。</p>
+<blockquote>
+<p>　　索引并不总是最好的工具，只有当索引帮助提高查询速度带来的好处大于其带来的额外工作时，索引才是有效的。对于非常小的表，简单的全表扫描更高效。对于中到大型的表，索引就非常有效。对于超大型的表，建立和维护索引的代价随之增长，这时候其他技术也许更有效，比如分区表。最后的最后，explain后再提测是一种美德。</p>
+</blockquote>
+<h2 id="特定类型的优化"><a href="#特定类型的优化" class="headerlink" title="特定类型的优化"></a>特定类型的优化</h2><h3 id="优化COUNT-查询"><a href="#优化COUNT-查询" class="headerlink" title="优化COUNT()查询"></a>优化COUNT()查询</h3><p>　　有时候某些业务场景并不需要完全精确的COUNT值，可以用近似值来代替，EXPLAIN出来的行数就是一个不错的近似值，而且执行EXPLAIN并不需要真正地去执行查询，所以成本非常低。如果不还能解决问题，只有从架构层面解决了，比如添加汇总表，或者使用redis这样的外部缓存系统。</p>
+<h3 id="优化关联查询"><a href="#优化关联查询" class="headerlink" title="优化关联查询"></a>优化关联查询</h3><p>　　在大数据场景下，表与表之间通过一个冗余字段来关联，要比直接使用JOIN有更好的性能。如果确实需要使用关联查询的情况下，需要特别注意的是：</p>
+<ol>
+<li>确保ON和USING字句中的列上有索引。在创建索引的时候就要考虑到关联的顺序。当表A和表B用列c关联的时候，如果优化器关联的顺序是A、B，那么就不需要在A表的对应列上创建索引。没有用到的索引会带来额外的负担，一般来说，除非有其他理由，只需要在关联顺序中的第二张表的相应列上创建索引（具体原因下文分析）。</li>
+<li>确保任何的GROUP BY和ORDER BY中的表达式只涉及到一个表中的列，这样MySQL才有可能使用索引来优化。</li>
+</ol>
+<p>　　要理解优化关联查询的第一个技巧，就需要理解MySQL是如何执行关联查询的。当前MySQL关联执行的策略非常简单，它对任何的关联都执行嵌套循环关联操作，即先在一个表中循环取出单条数据，然后在嵌套循环到下一个表中寻找匹配的行，依次下去，直到找到所有表中匹配的行为为止。然后根据各个表匹配的行，返回查询中需要的各个列。<br>例如：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> A.xx,B.yy</span><br><span class="line"><span class="keyword">FROM</span> A <span class="keyword">INNER</span> <span class="keyword">JOIN</span> B <span class="keyword">USING</span>(c)</span><br><span class="line"><span class="keyword">WHERE</span> A.xx <span class="keyword">IN</span> (<span class="number">5</span>,<span class="number">6</span>)</span><br></pre></td></tr></table></figure><br>　　假设MySQL按照查询中的关联顺序A、B来进行关联操作，那么可以用下面的伪代码表示MySQL如何完成这个查询：<br><figure class="highlight"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">outer_iterator =    <span class="keyword">SELECT</span> A.xx,A.c</span><br><span class="line">                    <span class="keyword">FROM</span> A </span><br><span class="line">                    <span class="keyword">WHERE</span> A.xx <span class="keyword">IN</span> (<span class="number">5</span>,<span class="number">6</span>);</span><br><span class="line">outer_row = outer_iterator.next;</span><br><span class="line">while(outer_row) &#123;</span><br><span class="line">    inner_iterator =    <span class="keyword">SELECT</span> B.yy </span><br><span class="line">                        <span class="keyword">FROM</span> B</span><br><span class="line">                        <span class="keyword">WHERE</span> B.c = outer_row.c;</span><br><span class="line">    inner_row = inner_iterator.next;</span><br><span class="line">    while(inner_row) &#123;</span><br><span class="line">        output[inner_row.yy,outer_row.xx];</span><br><span class="line">        inner_row = inner_iterator.next;</span><br><span class="line">    &#125;</span><br><span class="line">    outer_row = outer_iterator.next;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><br>　　可以看到，最外层的查询是根据A.xx列来查询的，A.c上如果有索引的话，整个关联查询也不会使用。再看内层的查询，很明显B.c上如果有索引的话，能够加速查询，因此只需要在关联顺序中的第二张表的相应列上创建索引即可。</p>
+<h3 id="优化LIMIT分页"><a href="#优化LIMIT分页" class="headerlink" title="优化LIMIT分页"></a>优化LIMIT分页</h3><p>　　当需要分页操作时，通常会使用LIMIT加上偏移量的办法实现，同时加上合适的ORDER BY字句。如果有对应的索引，通常效率会不错，否则，MySQL需要做大量的文件排序操作。</p>
+<p>　　一个常见的问题是当偏移量非常大的时候，比如：LIMIT 10000 20这样的查询，MySQL需要查询10020条记录然后只返回20条记录，前面的10000条都将被抛弃，这样的代价非常高。</p>
+<p>　　优化这种查询一个最简单的办法就是尽可能的使用覆盖索引扫描，而不是查询所有的列。然后根据需要做一次关联查询再返回所有的列。对于偏移量很大时，这样做的效率会提升非常大。考虑下面的查询：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> film_id,description <span class="keyword">FROM</span> film <span class="keyword">ORDER</span> <span class="keyword">BY</span> title <span class="keyword">LIMIT</span> <span class="number">50</span>,<span class="number">5</span>;</span><br></pre></td></tr></table></figure><br>　　如果这张表非常大，那么这个查询最好改成下面的样子：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> film.film_id,film.description</span><br><span class="line"><span class="keyword">FROM</span> film <span class="keyword">INNER</span> <span class="keyword">JOIN</span> (</span><br><span class="line">    <span class="keyword">SELECT</span> film_id</span><br><span class="line">    <span class="keyword">FROM</span> film</span><br><span class="line">    <span class="keyword">ORDER</span> <span class="keyword">BY</span> title</span><br><span class="line">    <span class="keyword">LIMIT</span> <span class="number">50</span>,<span class="number">5</span></span><br><span class="line">) <span class="keyword">AS</span> tmp <span class="keyword">USING</span>(film_id);</span><br></pre></td></tr></table></figure><br>　　这里的延迟关联将大大提升查询效率，让MySQL扫描尽可能少的页面，获取需要访问的记录后在根据关联列回原表查询所需要的列。</p>
+<p>　　有时候如果可以使用书签记录上次取数据的位置，那么下次就可以直接从该书签记录的位置开始扫描，这样就可以避免使用OFFSET，比如下面的查询：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="keyword">id</span> <span class="keyword">FROM</span> t <span class="keyword">LIMIT</span> <span class="number">10000</span>, <span class="number">10</span>;</span><br></pre></td></tr></table></figure><br>　　改为：<br><figure class="highlight sql"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">SELECT</span> <span class="keyword">id</span> <span class="keyword">FROM</span> t <span class="keyword">WHERE</span> <span class="keyword">id</span> &gt; <span class="number">10000</span> <span class="keyword">LIMIT</span> <span class="number">10</span>;</span><br></pre></td></tr></table></figure><br>　　其它优化的办法还包括使用预先计算的汇总表，或者关联到一个冗余表，冗余表中只包含主键列和需要做排序的列。</p>
+<h3 id="优化UNION"><a href="#优化UNION" class="headerlink" title="优化UNION"></a>优化UNION</h3><p>　　MySQL处理UNION的策略是先创建临时表，然后再把各个查询结果插入到临时表中，最后再来做查询。因此很多优化策略在UNION查询中都没有办法很好的时候。经常需要手动将WHERE、LIMIT、ORDER BY等字句“下推”到各个子查询中，以便优化器可以充分利用这些条件先优化。</p>
+<p>　　除非确实需要服务器去重，否则就一定要使用UNION ALL，如果没有ALL关键字，MySQL会给临时表加上DISTINCT选项，这会导致整个临时表的数据做唯一性检查，这样做的代价非常高。当然即使使用ALL关键字，MySQL总是将结果放入临时表，然后再读出，再返回给客户端。虽然很多时候没有这个必要，比如有时候可以直接把每个子查询的结果返回给客户端。</p>
+<h1 id="本次开发总结"><a href="#本次开发总结" class="headerlink" title="本次开发总结"></a>本次开发总结</h1><h2 id="V1-关注数据逻辑"><a href="#V1-关注数据逻辑" class="headerlink" title="V1 关注数据逻辑"></a>V1 关注数据逻辑</h2><p>　　在最初的几天时间里，由于对平台运作流程与数据库内的数据关系并不熟悉，主要以了解运营团队所需的统计数据与数据库内所存数据之间的逻辑关系为主，对齐统计口径。</p>
+<p>　　由于最初其需求为根据指定任务ID获取相应的数据统计，即所需获取用于统计数据仅为：</p>
+<ol>
+<li>任务表中的一行数据</li>
+<li>样本表中的数百行数据</li>
+<li>历史操作记录表中的千行左右数据</li>
+</ol>
+<p>故在保证数据逻辑正确的前提下，未过多关心性能，使用了大量循环嵌套内的查询语句。最终实现的HTTP接口平均响应时长在3.5秒左右。</p>
+<h2 id="V2-查询数据量激增"><a href="#V2-查询数据量激增" class="headerlink" title="V2 查询数据量激增"></a>V2 查询数据量激增</h2><p>　　在完成第一版的开发之后，才得知运营团队的查询需求在1.5万至2万个任务之间，如使用第一版开发的接口循环调用1.5万至2万次来获取数据，则实际花费时间将达到近20小时。</p>
+<p>　　起初我以为主要的时间花费是在HTTP请求与响应的处理上，故未修改后端大体逻辑，而是新增一个一次性导出全部数据的HTTP GET接口，内部实现则是傻乎乎地将V1的代码循环遍历一遍整个任务表上所有的任务ID。可想而知，发现预计完成时间依旧是天文数字。</p>
+<p>　　此时程序总共执行的SQL语句数量是O(n)，之后想到用空间换时间，尽量提前将所有任务的所需数据一次性读取至本地，再在循环内按任务ID获取相关数据进行处理。</p>
+<p>　　这个过程持续迭代了好几天，逐步将各种数据的获取从每一条数据基于单个任务ID、样本ID进行的SQL查询转变为每一项数据由一条SQL语句获取所有任务、样本。（虽然其中有的数据项查询操作前移简单、有的复杂，但最终处理方案的核心都不变，即尽量保留必要信息的同时，减少SQL请求数据量。），之后的主要工作就是在本地如何对大批量数据进行分类排序、组合成最终所需的按单一任务汇聚的数据集合。</p>
+<p>　　而经历了这个过程，整个数据获取的SQL语句，已经由原来的几万条减少到了个位数。由于SQL请求变少，虽然处理的数据依旧是千万行级，但处理时间已经下降到了分钟级别。足够满足当前运营团队的结算需求。</p>
+<h2 id="V3-后续优化方向"><a href="#V3-后续优化方向" class="headerlink" title="V3 后续优化方向"></a>V3 后续优化方向</h2><p>　　在前段时间的工作中，所进行的优化，主要还是在应用代码逻辑层面，如减少SQL查询语句数量，而非针对SQL语句本身进行优化。但在这个优化的过程中，学习和补充了大量的数据库查询优化原理、知识，同时也在这个过程中发现了目前平台数据库设计上存在的一些缺陷。例如索引的设计不合理、NULL与空字符串’’并存、不同table之间逻辑不统一等问题。<br>　　同时也在边学习边回顾的过程中，发现自己所写的不少SQL语句存在可优化的点，而这些优化策略基本也已在上述的学习总结中罗列，便不再重复。<br>　　在后续的平台开发过程中，将更着重优化数据库结构以及已有的后端接口中SQL查询语句，进一步解决平台数据查询缓慢的问题。</p>
+<h1 id="参考学习资料："><a href="#参考学习资料：" class="headerlink" title="参考学习资料："></a>参考学习资料：</h1><blockquote>
+<p><a href="https://dbaplus.cn/news-155-1531-1.html" target="_blank" rel="noopener">万字总结：学习MySQL优化原理，这一篇就够了！</a><br><a href="https://www.docs4dev.com/docs/zh/mysql/5.7/reference/optimization.html#%E4%BC%98%E5%8C%96" target="_blank" rel="noopener">MySQL5.7中文文档</a><br><a href="https://tech.meituan.com/2014/06/30/mysql-index.html" target="_blank" rel="noopener">MySQL索引原理及慢查询优化</a><br><a href="https://www.kancloud.cn/kancloud/theory-of-mysql-index" target="_blank" rel="noopener">MySQL索引背后的数据结构及算法原理</a><br><a href="https://www.cnblogs.com/williamjie/p/9389530.html" target="_blank" rel="noopener">SQL常见优化Sql查询性能的方法有哪些？</a><br>《MySQL必知必会》<br>《高性能MySQL》</p>
+</blockquote>
+
+    </article>
+    <!-- license  -->
+    
+        <div class="license-wrapper">
+            <p>原文作者：<a href="https://www.pengchen.top">枫逸</a>
+            <p>原文链接：<a href="https://www.pengchen.top/posts/13958/">https://www.pengchen.top/posts/13958/</a>
+            <p>发表日期：<a href="https://www.pengchen.top/posts/13958/">July 5th 2020, 6:08:56 pm</a>
+            <p>更新日期：<a href="https://www.pengchen.top/posts/13958/">September 5th 2020, 1:44:05 am</a>
+            <p>版权声明：本文采用<a rel="license noopener" href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank">知识共享署名-非商业性使用 4.0 国际许可协议</a>进行许可</p>
+        </div>
+    
+    <!-- paginator  -->
+    <ul class="post-paginator">
+        <li class="next">
+            
+                <div class="nextSlogan">Next Post</div>
+                <a href= "/posts/63042/" title= "学习笔记：Redis 设计与实现 —— 数据结构与对象">
+                    <div class="nextTitle">学习笔记：Redis 设计与实现 —— 数据结构与对象</div>
+                </a>
+            
+        </li>
+        <li class="previous">
+            
+                <div class="prevSlogan">Previous Post</div>
+                <a href= "/posts/23611/" title= "学习笔记：InnoDB存储引擎 索引与算法 （一）">
+                    <div class="prevTitle">学习笔记：InnoDB存储引擎 索引与算法 （一）</div>
+                </a>
+            
+        </li>
+    </ul>
+    <!-- 评论插件 -->
+    <!-- 来必力City版安装代码 -->
+
+    <div id="lv-container" data-id="city" data-uid= fengyi_pc@foxmail.com>
+        <script type="text/javascript">
+            (function (d, s) {
+                var j, e = d.getElementsByTagName(s)[0];
+                if (typeof LivereTower === 'function') { return; }
+                j = d.createElement(s);
+                j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+                j.async = true;
+
+                e.parentNode.insertBefore(j, e);
+            })(document, 'script');
+        </script>
+        <noscript>为正常使用来必力评论功能请激活JavaScript</noscript>
+    </div>
+
+<!-- City版安装代码已完成 -->
+    
+    
+    <!-- gitalk评论 -->
+
+    <!-- utteranc评论 -->
+
+    <!-- partial('_partial/comment/changyan') -->
+    <!--PC版-->
+
+
+    
+    
+
+    <!-- 评论 -->
+    
+</main>
+            <!-- profile -->
+            
+        </div>
+        <footer class="footer footer-unloaded">
+    <!-- social  -->
+    
+    <div class="social">
+        
+    
+        
+            
+                <a href="mailto:fengyi_pc@foxmail.com" class="iconfont-archer email" title=email ></a>
+            
+        
+    
+        
+            
+                <a href="https://github.com/fengyipc" class="iconfont-archer github" target="_blank" title=github></a>
+            
+        
+    
+        
+            
+                <span class="iconfont-archer wechat" title=wechat>
+                  
+                  <img class="profile-qr" src="/assets/mmqrcode.png" />
+                </span>
+            
+        
+    
+        
+            
+                <span class="iconfont-archer qq" title=qq>
+                  
+                  <img class="profile-qr" src="/assets/qqqrcode.jpg" />
+                </span>
+            
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+
+    </div>
+    
+    <!-- powered by Hexo  -->
+    <div class="copyright">
+        <span id="hexo-power">Powered by <a href="https://hexo.io/" target="_blank">Hexo</a></span><span class="iconfont-archer power">&#xe635;</span><span id="theme-info">theme <a href="https://github.com/fi3ework/hexo-theme-archer" target="_blank">Archer</a></span>
+    </div>
+    <!-- 不蒜子  -->
+    
+    <div class="busuanzi-container">
+    
+     
+    <span id="busuanzi_container_site_pv">PV: <span id="busuanzi_value_site_pv"></span> :)</span>
+    
+    </div>
+    
+</footer>
+    </div>
+    <!-- toc -->
+    
+    <div class="toc-wrapper" style=
+    
+
+
+
+
+
+
+
+top:50vh;
+
+    >
+        <div class="toc-catalog">
+            <span class="iconfont-archer catalog-icon">&#xe613;</span><span>CATALOG</span>
+        </div>
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#MySQL优化原理"><span class="toc-number">1.</span> <span class="toc-text">MySQL优化原理</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#MySQL逻辑架构"><span class="toc-number">1.1.</span> <span class="toc-text">MySQL逻辑架构</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#MySQL查询过程"><span class="toc-number">1.2.</span> <span class="toc-text">MySQL查询过程</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#查询缓存"><span class="toc-number">1.2.1.</span> <span class="toc-text">查询缓存</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#语法解析和预处理"><span class="toc-number">1.2.2.</span> <span class="toc-text">语法解析和预处理</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#查询优化"><span class="toc-number">1.2.3.</span> <span class="toc-text">查询优化</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#查询执行引擎"><span class="toc-number">1.2.4.</span> <span class="toc-text">查询执行引擎</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#返回结果"><span class="toc-number">1.2.5.</span> <span class="toc-text">返回结果</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#总结整个流程，分为六个步骤："><span class="toc-number">1.2.6.</span> <span class="toc-text">总结整个流程，分为六个步骤：</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#性能优化技巧"><span class="toc-number">2.</span> <span class="toc-text">性能优化技巧</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#Scheme设计与数据类型优化"><span class="toc-number">2.1.</span> <span class="toc-text">Scheme设计与数据类型优化</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#基于索引的高性能策略"><span class="toc-number">2.2.</span> <span class="toc-text">基于索引的高性能策略</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#MySQL不会使用索引的情况：非独立的列"><span class="toc-number">2.2.1.</span> <span class="toc-text">MySQL不会使用索引的情况：非独立的列</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#使用前缀索引"><span class="toc-number">2.2.2.</span> <span class="toc-text">使用前缀索引</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#多列索引和索引顺序"><span class="toc-number">2.2.3.</span> <span class="toc-text">多列索引和索引顺序</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#避免多个范围条件"><span class="toc-number">2.2.4.</span> <span class="toc-text">避免多个范围条件</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#覆盖索引"><span class="toc-number">2.2.5.</span> <span class="toc-text">覆盖索引</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#使用索引扫描来排序"><span class="toc-number">2.2.6.</span> <span class="toc-text">使用索引扫描来排序</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#避免冗余和重复索引"><span class="toc-number">2.2.7.</span> <span class="toc-text">避免冗余和重复索引</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#删除长期未使用的索引"><span class="toc-number">2.2.8.</span> <span class="toc-text">删除长期未使用的索引</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#特定类型的优化"><span class="toc-number">2.3.</span> <span class="toc-text">特定类型的优化</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#优化COUNT-查询"><span class="toc-number">2.3.1.</span> <span class="toc-text">优化COUNT()查询</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#优化关联查询"><span class="toc-number">2.3.2.</span> <span class="toc-text">优化关联查询</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#优化LIMIT分页"><span class="toc-number">2.3.3.</span> <span class="toc-text">优化LIMIT分页</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#优化UNION"><span class="toc-number">2.3.4.</span> <span class="toc-text">优化UNION</span></a></li></ol></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#本次开发总结"><span class="toc-number">3.</span> <span class="toc-text">本次开发总结</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#V1-关注数据逻辑"><span class="toc-number">3.1.</span> <span class="toc-text">V1 关注数据逻辑</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#V2-查询数据量激增"><span class="toc-number">3.2.</span> <span class="toc-text">V2 查询数据量激增</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#V3-后续优化方向"><span class="toc-number">3.3.</span> <span class="toc-text">V3 后续优化方向</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#参考学习资料："><span class="toc-number">4.</span> <span class="toc-text">参考学习资料：</span></a></li></ol>
+    </div>
+    
+    <div class="back-top iconfont-archer">&#xe639;</div>
+    <div class="sidebar sidebar-hide">
+    <ul class="sidebar-tabs sidebar-tabs-active-0">
+        <li class="sidebar-tab-archives"><span class="iconfont-archer">&#xe67d;</span><span class="tab-name">Archive</span></li>
+        <li class="sidebar-tab-tags"><span class="iconfont-archer">&#xe61b;</span><span class="tab-name">Tag</span></li>
+        <li class="sidebar-tab-categories"><span class="iconfont-archer">&#xe666;</span><span class="tab-name">Cate</span></li>
+    </ul>
+    <div class="sidebar-content sidebar-content-show-archive">
+          <div class="sidebar-panel-archives">
+    <!-- 在ejs中将archive按照时间排序 -->
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <div class="total-and-search">
+        <div class="total-archive">
+        Total : 15
+        </div>
+        <!-- search  -->
+        
+    </div>
+    
+    <div class="post-archive">
+    
+    
+    
+    
+    <div class="archive-year"> 2020 </div>
+    <ul class="year-list">
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">08/26</span><a class="archive-post-title" href= "/posts/1754/" >学习笔记：Effective C++ (二)：构造析构赋值运算</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">08/26</span><a class="archive-post-title" href= "/posts/37873/" >学习笔记：Effective C++ (一)：让自己习惯C++</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">07/24</span><a class="archive-post-title" href= "/posts/63042/" >学习笔记：Redis 设计与实现 —— 数据结构与对象</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">07/05</span><a class="archive-post-title" href= "/posts/13958/" >实习总结：标注平台结算统计接口开发中的查询优化与SQL优化知识总结</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">06/20</span><a class="archive-post-title" href= "/posts/23611/" >学习笔记：InnoDB存储引擎 索引与算法 （一）</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">06/15</span><a class="archive-post-title" href= "/posts/23692/" >实习总结：基于Prometheus + Grafana + JsonDatasource 搭建云资源监控系统</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/20</span><a class="archive-post-title" href= "/posts/19531/" >学习笔记：Redis 入门指南</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/07</span><a class="archive-post-title" href= "/posts/11653/" >学习笔记：进程间通信</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/02</span><a class="archive-post-title" href= "/posts/41580/" >CSAPP 学习笔记：并发编程</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">04/18</span><a class="archive-post-title" href= "/posts/47691/" >CSAPP 学习笔记：函数调用及栈帧原理</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">04/15</span><a class="archive-post-title" href= "/posts/19769/" >转载笔记：虚拟内存的那点事儿</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">03/15</span><a class="archive-post-title" href= "/posts/23296/" >剑指offer 47-48 ：不用加减乘除做加法、求1+2+3+...+n</a>
+        </li>
+    
+    
+    
+    
+    
+        </ul>
+    
+    <div class="archive-year"> 2019 </div>
+    <ul class="year-list">
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/31</span><a class="archive-post-title" href= "/posts/28656/" >RNN-based GAN 基础模型及相关论文</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/29</span><a class="archive-post-title" href= "/posts/5812/" >论文构思：GAN-based Data Augmentation for Fall Detection Datasets</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/28</span><a class="archive-post-title" href= "/posts/1521/" >论文笔记：Detecting Falls with Wearable Sensors Using Machine Learning Techniques</a>
+        </li>
+    
+    </div>
+  </div>
+        <div class="sidebar-panel-tags">
+    <div class="sidebar-tags-name">
+    
+        <span class="sidebar-tag-name" data-tags="操作系统"><span class="iconfont-archer">&#xe606;</span>操作系统</span>
+    
+        <span class="sidebar-tag-name" data-tags="学习笔记"><span class="iconfont-archer">&#xe606;</span>学习笔记</span>
+    
+        <span class="sidebar-tag-name" data-tags="并发编程"><span class="iconfont-archer">&#xe606;</span>并发编程</span>
+    
+        <span class="sidebar-tag-name" data-tags="Fall Detection"><span class="iconfont-archer">&#xe606;</span>Fall Detection</span>
+    
+        <span class="sidebar-tag-name" data-tags="Machine Learning"><span class="iconfont-archer">&#xe606;</span>Machine Learning</span>
+    
+        <span class="sidebar-tag-name" data-tags="Deep Learning"><span class="iconfont-archer">&#xe606;</span>Deep Learning</span>
+    
+        <span class="sidebar-tag-name" data-tags="C++"><span class="iconfont-archer">&#xe606;</span>C++</span>
+    
+        <span class="sidebar-tag-name" data-tags="剑指offer"><span class="iconfont-archer">&#xe606;</span>剑指offer</span>
+    
+        <span class="sidebar-tag-name" data-tags="算法笔记"><span class="iconfont-archer">&#xe606;</span>算法笔记</span>
+    
+        <span class="sidebar-tag-name" data-tags="计算机组成原理"><span class="iconfont-archer">&#xe606;</span>计算机组成原理</span>
+    
+        <span class="sidebar-tag-name" data-tags="MySQL"><span class="iconfont-archer">&#xe606;</span>MySQL</span>
+    
+        <span class="sidebar-tag-name" data-tags="数据库"><span class="iconfont-archer">&#xe606;</span>数据库</span>
+    
+        <span class="sidebar-tag-name" data-tags="Redis"><span class="iconfont-archer">&#xe606;</span>Redis</span>
+    
+        <span class="sidebar-tag-name" data-tags="实习总结"><span class="iconfont-archer">&#xe606;</span>实习总结</span>
+    
+        <span class="sidebar-tag-name" data-tags="运维"><span class="iconfont-archer">&#xe606;</span>运维</span>
+    
+        <span class="sidebar-tag-name" data-tags="集群监控"><span class="iconfont-archer">&#xe606;</span>集群监控</span>
+    
+        <span class="sidebar-tag-name" data-tags="GO语言"><span class="iconfont-archer">&#xe606;</span>GO语言</span>
+    
+        <span class="sidebar-tag-name" data-tags="后台开发"><span class="iconfont-archer">&#xe606;</span>后台开发</span>
+    
+        <span class="sidebar-tag-name" data-tags="转载笔记"><span class="iconfont-archer">&#xe606;</span>转载笔记</span>
+    
+    </div>
+    <div class="iconfont-archer sidebar-tags-empty">&#xe678;</div>
+    <div class="tag-load-fail" style="display: none; color: #ccc; font-size: 0.6rem;">
+    缺失模块。<br/>
+    1、请确保node版本大于6.2<br/>
+    2、在博客根目录（注意不是archer根目录）执行以下命令：<br/>
+    <span style="color: #f75357; font-size: 1rem; line-height: 2rem;">npm i hexo-generator-json-content --save</span><br/>
+    3、在根目录_config.yml里添加配置：
+    <pre style="color: #787878; font-size: 0.6rem;">
+jsonContent:
+  meta: false
+  pages: false
+  posts:
+    title: true
+    date: true
+    path: true
+    text: false
+    raw: false
+    content: false
+    slug: false
+    updated: false
+    comments: false
+    link: false
+    permalink: false
+    excerpt: false
+    categories: true
+    tags: true</pre>
+    </div> 
+    <div class="sidebar-tags-list"></div>
+</div>
+        <div class="sidebar-panel-categories">
+    <div class="sidebar-categories-name">
+    
+        <span class="sidebar-category-name" data-categories="学习笔记"><span class="iconfont-archer">&#xe60a;</span>学习笔记</span>
+    
+        <span class="sidebar-category-name" data-categories="机器学习"><span class="iconfont-archer">&#xe60a;</span>机器学习</span>
+    
+        <span class="sidebar-category-name" data-categories="实习总结"><span class="iconfont-archer">&#xe60a;</span>实习总结</span>
+    
+        <span class="sidebar-category-name" data-categories="转载笔记"><span class="iconfont-archer">&#xe60a;</span>转载笔记</span>
+    
+    </div>
+    <div class="iconfont-archer sidebar-categories-empty">&#xe678;</div>
+    <div class="sidebar-categories-list"></div>
+</div>
+    </div>
+</div> 
+    <script>
+    var siteMeta = {
+        root: "/",
+        author: "枫逸"
+    }
+</script>
+    <!-- CDN failover -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script>
+    <script type="text/javascript">
+        if (typeof window.$ === 'undefined')
+        {
+            console.warn('jquery load from jsdelivr failed, will load local script')
+            document.write('<script src="/lib/jquery.min.js">\x3C/script>')
+        }
+    </script>
+    <script src="/scripts/main.js"></script>
+    <!-- algolia -->
+    
+    <!-- busuanzi  -->
+    
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    
+    <!-- CNZZ  -->
+    
+    </div>
+    <!-- async load share.js -->
+    
+        <script src="/scripts/share.js" async></script><!-- hexo-inject:begin --><!-- hexo-inject:end -->    
+     
+    </body>
+</html>
+
+

@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+    <!-- title -->
+
+
+
+
+<!-- keywords -->
+
+
+
+
+<head>
+    <!-- hexo-inject:begin --><!-- hexo-inject:end --><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" >
+    <meta name="author" content="枫逸">
+    <meta name="renderer" content="webkit">
+    <meta name="copyright" content="枫逸">
+    
+    <meta name="keywords" content="Maple's Story,枫逸">
+    
+    <meta name="description" content="不要温和地走进那个良夜。">
+    <meta name="description" content="简介Redis 是 Remote Dictionary Server （远程字典服务器）的缩写，它是一个开源的高性能键值对数据库，提供多种键值数据类型来适应不同的存储需求。借助许多高级接口可以实现如缓存、队列系统等功能。 Redis 支持五种数据类型：  字符串类型 散列类型 列表类型 集合类型 有序集合类型  Redis 数据库中的所有数据都存储在内存中，读写速度极快。也提供持久化支持，可以将数">
+<meta property="og:type" content="article">
+<meta property="og:title" content="学习笔记：Redis 入门指南">
+<meta property="og:url" content="https://www.pengchen.top/posts/19531/index.html">
+<meta property="og:site_name" content="Maple&#39;s Story">
+<meta property="og:description" content="简介Redis 是 Remote Dictionary Server （远程字典服务器）的缩写，它是一个开源的高性能键值对数据库，提供多种键值数据类型来适应不同的存储需求。借助许多高级接口可以实现如缓存、队列系统等功能。 Redis 支持五种数据类型：  字符串类型 散列类型 列表类型 集合类型 有序集合类型  Redis 数据库中的所有数据都存储在内存中，读写速度极快。也提供持久化支持，可以将数">
+<meta property="og:image" content="https://www.pengchen.top/images/fig39.png">
+<meta property="article:published_time" content="2020-05-20T10:35:51.000Z">
+<meta property="article:modified_time" content="2020-09-04T17:44:05.367Z">
+<meta property="article:author" content="枫逸">
+<meta property="article:tag" content="学习笔记">
+<meta property="article:tag" content="数据库">
+<meta property="article:tag" content="Redis">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://www.pengchen.top/images/fig39.png">
+    <meta http-equiv="Cache-control" content="no-cache">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+    
+    <title>学习笔记：Redis 入门指南 · Maple&#39;s Story</title>
+    <style type="text/css">
+    @font-face {
+        font-family: 'Oswald-Regular';
+        src: url("/font/Oswald-Regular.ttf");
+    }
+
+    body {
+        margin: 0;
+    }
+
+    header,
+    footer,
+    .back-top,
+    .sidebar,
+    .container,
+    .site-intro-meta,
+    .toc-wrapper {
+        display: none;
+    }
+
+    .site-intro {
+        position: relative;
+        z-index: 3;
+        width: 100%;
+        /* height: 50vh; */
+        overflow: hidden;
+    }
+
+    .site-intro-placeholder {
+        position: absolute;
+        z-index: -2;
+        top: 0;
+        left: 0;
+        width: calc(100% + 300px);
+        height: 100%;
+        background: repeating-linear-gradient(-45deg, #444 0, #444 80px, #333 80px, #333 160px);
+        background-position: center center;
+        transform: translate3d(-226px, 0, 0);
+        animation: gradient-move 2.5s ease-out 0s infinite;
+    }
+
+    @keyframes gradient-move {
+        0% {
+            transform: translate3d(-226px, 0, 0);
+        }
+        100% {
+            transform: translate3d(0, 0, 0);
+        }
+    }
+
+</style>
+
+    <link rel="preload" href= "/css/style.css?v=20180824" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+    <link rel="stylesheet" href= "/css/mobile.css?v=20180824" media="(max-width: 980px)">
+    
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.2.5/jquery.fancybox.min.css" as="style" onload="this.onload=null;this.rel='stylesheet'" />
+    
+    <!-- /*! loadCSS. [c]2017 Filament Group, Inc. MIT License */
+/* This file is meant as a standalone workflow for
+- testing support for link[rel=preload]
+- enabling async CSS loading in browsers that do not support rel=preload
+- applying rel preload css once loaded, whether supported or not.
+*/ -->
+<script>
+(function( w ){
+	"use strict";
+	// rel=preload support test
+	if( !w.loadCSS ){
+		w.loadCSS = function(){};
+	}
+	// define on the loadCSS obj
+	var rp = loadCSS.relpreload = {};
+	// rel=preload feature support test
+	// runs once and returns a function for compat purposes
+	rp.support = (function(){
+		var ret;
+		try {
+			ret = w.document.createElement( "link" ).relList.supports( "preload" );
+		} catch (e) {
+			ret = false;
+		}
+		return function(){
+			return ret;
+		};
+	})();
+
+	// if preload isn't supported, get an asynchronous load by using a non-matching media attribute
+	// then change that media back to its intended value on load
+	rp.bindMediaToggle = function( link ){
+		// remember existing media attr for ultimate state, or default to 'all'
+		var finalMedia = link.media || "all";
+
+		function enableStylesheet(){
+			link.media = finalMedia;
+		}
+
+		// bind load handlers to enable media
+		if( link.addEventListener ){
+			link.addEventListener( "load", enableStylesheet );
+		} else if( link.attachEvent ){
+			link.attachEvent( "onload", enableStylesheet );
+		}
+
+		// Set rel and non-applicable media type to start an async request
+		// note: timeout allows this to happen async to let rendering continue in IE
+		setTimeout(function(){
+			link.rel = "stylesheet";
+			link.media = "only x";
+		});
+		// also enable media after 3 seconds,
+		// which will catch very old browsers (android 2.x, old firefox) that don't support onload on link
+		setTimeout( enableStylesheet, 3000 );
+	};
+
+	// loop through link elements in DOM
+	rp.poly = function(){
+		// double check this to prevent external calls from running
+		if( rp.support() ){
+			return;
+		}
+		var links = w.document.getElementsByTagName( "link" );
+		for( var i = 0; i < links.length; i++ ){
+			var link = links[ i ];
+			// qualify links to those with rel=preload and as=style attrs
+			if( link.rel === "preload" && link.getAttribute( "as" ) === "style" && !link.getAttribute( "data-loadcss" ) ){
+				// prevent rerunning on link
+				link.setAttribute( "data-loadcss", true );
+				// bind listeners to toggle media back
+				rp.bindMediaToggle( link );
+			}
+		}
+	};
+
+	// if unsupported, run the polyfill
+	if( !rp.support() ){
+		// run once at least
+		rp.poly();
+
+		// rerun poly on an interval until onload
+		var run = w.setInterval( rp.poly, 500 );
+		if( w.addEventListener ){
+			w.addEventListener( "load", function(){
+				rp.poly();
+				w.clearInterval( run );
+			} );
+		} else if( w.attachEvent ){
+			w.attachEvent( "onload", function(){
+				rp.poly();
+				w.clearInterval( run );
+			} );
+		}
+	}
+
+
+	// commonjs
+	if( typeof exports !== "undefined" ){
+		exports.loadCSS = loadCSS;
+	}
+	else {
+		w.loadCSS = loadCSS;
+	}
+}( typeof global !== "undefined" ? global : this ) );
+</script>
+
+    <link rel="icon" href= "/assets/001.ico" />
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/webfontloader@1.6.28/webfontloader.min.js" as="script" />
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js" as="script" />
+    <link rel="preload" href="/scripts/main.js" as="script" />
+    <link rel="preload" as="font" href="/font/Oswald-Regular.ttf" crossorigin>
+    <link rel="preload" as="font" href="https://at.alicdn.com/t/font_327081_1dta1rlogw17zaor.woff" crossorigin>
+    
+    <!-- fancybox -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fancybox/3.2.5/jquery.fancybox.min.js" defer></script>
+    <!-- 百度统计  -->
+    
+    <!-- 谷歌统计  -->
+    
+<meta name="generator" content="Hexo 4.2.1"><!-- hexo-inject:begin --><!-- hexo-inject:end --></head>
+
+    
+        <body class="post-body">
+    
+    
+<!-- hexo-inject:begin --><!-- hexo-inject:end --><header class="header">
+
+    <div class="read-progress"></div>
+    <div class="header-sidebar-menu">&#xe775;</div>
+    <!-- post页的toggle banner  -->
+    
+    <div class="banner">
+            <div class="blog-title">
+                <a href="/" >Maple&#39;s Story</a>
+            </div>
+            <div class="post-title">
+                <a href="#" class="post-name">学习笔记：Redis 入门指南</a>
+            </div>
+    </div>
+    
+    <a class="home-link" href=/>Maple's Story</a>
+</header>
+    <div class="wrapper">
+        <div class="site-intro" style="
+
+
+
+
+
+
+
+height:50vh;
+">
+    
+    <!-- 主页  -->
+    
+    
+    <!-- 404页  -->
+            
+    <div class="site-intro-placeholder"></div>
+    <div class="site-intro-img" style="background-image: url(https://source.unsplash.com/random)"></div>
+    <div class="site-intro-meta">
+        <!-- 标题  -->
+        <h1 class="intro-title">
+            <!-- 主页  -->
+            
+            学习笔记：Redis 入门指南
+            <!-- 404 -->
+            
+        </h1>
+        <!-- 副标题 -->
+        <p class="intro-subtitle">
+            <!-- 主页副标题  -->
+            
+            
+            <!-- 404 -->
+            
+        </p>
+        <!-- 文章页meta -->
+        
+            <div class="post-intros">
+                <!-- 文章页标签  -->
+                
+                    <div class= post-intro-tags >
+    
+        <a class="post-tag" href="javascript:void(0);" data-tags = "学习笔记">学习笔记</a>
+    
+        <a class="post-tag" href="javascript:void(0);" data-tags = "数据库">数据库</a>
+    
+        <a class="post-tag" href="javascript:void(0);" data-tags = "Redis">Redis</a>
+    
+</div>
+                
+                
+                    <div class="post-intro-read">
+                        <span>字数统计: <span class="post-count word-count">2k</span>阅读时长: <span class="post-count reading-time">7 min</span></span>
+                    </div>
+                
+                <div class="post-intro-meta">
+                    <span class="post-intro-calander iconfont-archer">&#xe676;</span>
+                    <span class="post-intro-time">2020/05/20</span>
+                    
+                    <span id="busuanzi_container_page_pv" class="busuanzi-pv">
+                        <span class="iconfont-archer">&#xe602;</span>
+                        <span id="busuanzi_value_page_pv"></span>
+                    </span>
+                    
+                    <span class="shareWrapper">
+                        <span class="iconfont-archer shareIcon">&#xe71d;</span>
+                        <span class="shareText">Share</span>
+                        <ul class="shareList">
+                            <li class="iconfont-archer share-qr" data-type="qr">&#xe75b;
+                                <div class="share-qrcode"></div>
+                            </li>
+                            <li class="iconfont-archer" data-type="weibo">&#xe619;</li>
+                            <li class="iconfont-archer" data-type="qzone">&#xe62e;</li>
+                            <li class="iconfont-archer" data-type="twitter">&#xe634;</li>
+                            <li class="iconfont-archer" data-type="facebook">&#xe67a;</li>
+                        </ul>
+                    </span>
+                </div>
+            </div>
+        
+    </div>
+</div>
+        <script>
+ 
+  // get user agent
+  var browser = {
+    versions: function () {
+      var u = window.navigator.userAgent;
+      return {
+        userAgent: u,
+        trident: u.indexOf('Trident') > -1, //IE内核
+        presto: u.indexOf('Presto') > -1, //opera内核
+        webKit: u.indexOf('AppleWebKit') > -1, //苹果、谷歌内核
+        gecko: u.indexOf('Gecko') > -1 && u.indexOf('KHTML') == -1, //火狐内核
+        mobile: !!u.match(/AppleWebKit.*Mobile.*/), //是否为移动终端
+        ios: !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/), //ios终端
+        android: u.indexOf('Android') > -1 || u.indexOf('Linux') > -1, //android终端或者uc浏览器
+        iPhone: u.indexOf('iPhone') > -1 || u.indexOf('Mac') > -1, //是否为iPhone或者安卓QQ浏览器
+        iPad: u.indexOf('iPad') > -1, //是否为iPad
+        webApp: u.indexOf('Safari') == -1, //是否为web应用程序，没有头部与底部
+        weixin: u.indexOf('MicroMessenger') == -1, //是否为微信浏览器
+        uc: u.indexOf('UCBrowser') > -1 //是否为android下的UC浏览器
+      };
+    }()
+  }
+  console.log("userAgent:" + browser.versions.userAgent);
+
+  // callback
+  function fontLoaded() {
+    console.log('font loaded');
+    if (document.getElementsByClassName('site-intro-meta')) {
+      document.getElementsByClassName('intro-title')[0].classList.add('intro-fade-in');
+      document.getElementsByClassName('intro-subtitle')[0].classList.add('intro-fade-in');
+      var postIntros = document.getElementsByClassName('post-intros')[0]
+      if (postIntros) {
+        postIntros.classList.add('post-fade-in');
+      }
+    }
+  }
+
+  // UC不支持跨域，所以直接显示
+  function asyncCb(){
+    if (browser.versions.uc) {
+      console.log("UCBrowser");
+      fontLoaded();
+    } else {
+      WebFont.load({
+        custom: {
+          families: ['Oswald-Regular']
+        },
+        loading: function () {  //所有字体开始加载
+          // console.log('loading');
+        },
+        active: function () {  //所有字体已渲染
+          fontLoaded();
+        },
+        inactive: function () { //字体预加载失败，无效字体或浏览器不支持加载
+          console.log('inactive: timeout');
+          fontLoaded();
+        },
+        timeout: 5000 // Set the timeout to two seconds
+      });
+    }
+  }
+
+  function asyncErr(){
+    console.warn('script load from CDN failed, will load local script')
+  }
+
+  // load webfont-loader async, and add callback function
+  function async(u, cb, err) {
+    var d = document, t = 'script',
+      o = d.createElement(t),
+      s = d.getElementsByTagName(t)[0];
+    o.src = u;
+    if (cb) { o.addEventListener('load', function (e) { cb(null, e); }, false); }
+    if (err) { o.addEventListener('error', function (e) { err(null, e); }, false); }
+    s.parentNode.insertBefore(o, s);
+  }
+
+  var asyncLoadWithFallBack = function(arr, success, reject) {
+      var currReject = function(){
+        reject()
+        arr.shift()
+        if(arr.length)
+          async(arr[0], success, currReject)
+        }
+
+      async(arr[0], success, currReject)
+  }
+
+  asyncLoadWithFallBack([
+    "https://cdn.jsdelivr.net/npm/webfontloader@1.6.28/webfontloader.min.js", 
+    "https://cdn.bootcss.com/webfont/1.6.28/webfontloader.js",
+    "/lib/webfontloader.min.js"
+  ], asyncCb, asyncErr)
+</script>        
+        <img class="loading" src="/assets/loading.svg" style="display: block; margin: 6rem auto 0 auto; width: 6rem; height: 6rem;" />
+        <div class="container container-unloaded">
+            <main class="main post-page">
+    <article class="article-entry">
+        <h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>Redis 是 Remote Dictionary Server （远程字典服务器）的缩写，它是一个开源的高性能键值对数据库，提供多种键值数据类型来适应不同的存储需求。借助许多高级接口可以实现如缓存、队列系统等功能。</p>
+<p>Redis 支持五种数据类型：</p>
+<ul>
+<li>字符串类型</li>
+<li>散列类型</li>
+<li>列表类型</li>
+<li>集合类型</li>
+<li>有序集合类型</li>
+</ul>
+<p>Redis 数据库中的所有数据都存储在内存中，读写速度极快。也提供持久化支持，可以将数据异步写入硬盘中，同时不影响继续提供服务。</p>
+<p>Redis 可以为每个键设置 TTL ，到期后键自动删除，使其可以作为缓存系统使用。Redis 的列表类型键可以用来实现队列，并且支持阻塞式读取，很容易实现高性能的优先级队列。还支持“发布/订阅”的消息模式。</p>
+<hr>
+<h2 id="数据类型"><a href="#数据类型" class="headerlink" title="数据类型"></a>数据类型</h2><h3 id="字符串类型-String"><a href="#字符串类型-String" class="headerlink" title="字符串类型 ( String )"></a>字符串类型 ( String )</h3><p>字符串类型是 Redis 中最基本的数据类型，可以存储任何形式的字符串，包括二进制数据。字符串类型是其他 4 种数据类型的基础，其他数据类型只是组织字符串的形式不同。</p>
+<blockquote>
+<p>Redis 键名规范：对象类型 : 对象 ID : 对象属性<br>多个单词以’ . ‘ 分隔</p>
+</blockquote>
+<p><strong>命令</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line">赋值 与 取值</span><br><span class="line">SET key value</span><br><span class="line">GET key</span><br><span class="line"></span><br><span class="line">递增&#x2F;减 数字</span><br><span class="line">INCR key</span><br><span class="line">DECR key</span><br><span class="line"></span><br><span class="line">增&#x2F;减 指定整数</span><br><span class="line">INCRBY key increment</span><br><span class="line">DECRBY key decrement</span><br><span class="line"></span><br><span class="line">增&#x2F;减指定浮点数</span><br><span class="line">INCRBYFLOAT key increment</span><br><span class="line">DECRBYFLOAT key decrement</span><br><span class="line"></span><br><span class="line">向尾部追加值 (若键不存在，则设置为 value)</span><br><span class="line">APPEND key value</span><br><span class="line"></span><br><span class="line">获取字符串长度</span><br><span class="line">STRLEN key</span><br><span class="line"></span><br><span class="line">同时获得&#x2F;设置 多个键值</span><br><span class="line">MGET key [key ...]</span><br><span class="line">MSET key value [key value ...]</span><br><span class="line"></span><br><span class="line">位操作</span><br><span class="line">GETBIT key offset</span><br><span class="line">SETBIT key offset value</span><br><span class="line"></span><br><span class="line">获取统计的字节范围内，二进制位为1的个数</span><br><span class="line">BITCOUNT key [start] [end]</span><br><span class="line"></span><br><span class="line">对多个字符串键进行位运算 支持 AND、OR、XOR、NOT</span><br><span class="line">BITOP operation destkey key [key ...]</span><br></pre></td></tr></table></figure>
+<h3 id="散列类型-Hash-Table"><a href="#散列类型-Hash-Table" class="headerlink" title="散列类型 ( Hash Table )"></a>散列类型 ( Hash Table )</h3><p>散列（ hash ）类型的键值是一种字典结构，其存储了字段和字段值的映射，但字段值只能是字符串。最多容纳 2^32-1 个元素。</p>
+<p>散列类型适合存储：以类型和 ID 构成键名，字段表示属性，字段值存储属性值。</p>
+<p><img src="/images/fig39.png" alt=""></p>
+<p><strong>命令</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">赋值与取值</span><br><span class="line">HSET key field value</span><br><span class="line">HGET key field &#x2F;&#x2F; 不区分插入和更新 插入返回 1 ，更新返回 0</span><br><span class="line"></span><br><span class="line">HMSET key field value [field value ...]</span><br><span class="line">HMGET key field [field ...]</span><br><span class="line"></span><br><span class="line">返回所有字段和字段值组成的列表</span><br><span class="line">HGETALL key</span><br><span class="line"></span><br><span class="line">存在返回 1 ，否则返回 0 | 键不存在也返回 0</span><br><span class="line">HEXISTS key field</span><br><span class="line"></span><br><span class="line">当字段不存在时赋值 返回 1， 存在时不执行任何操作 返回 0 (原子操作)</span><br><span class="line">HSETNX key field value</span><br><span class="line"></span><br><span class="line">增加数字</span><br><span class="line">HINCRBY key field increment</span><br><span class="line"></span><br><span class="line">删除字段 返回值为删除的个数</span><br><span class="line">HDEL key field [field ...]</span><br><span class="line"></span><br><span class="line">获取键中所有字段名</span><br><span class="line">HKEYS key</span><br><span class="line"></span><br><span class="line">获取键中所有字段值</span><br><span class="line">HVALS key</span><br><span class="line"></span><br><span class="line">获取字段数量</span><br><span class="line">HLEN key</span><br></pre></td></tr></table></figure>
+<h3 id="列表类型-List"><a href="#列表类型-List" class="headerlink" title="列表类型 ( List)"></a>列表类型 ( List)</h3><p>列表类型 ( list ) 可以存储一个有序的字符串列表，常用操作是向两端添加元素，或者获得列表的某一片段。内部使用双向链表实现，故获取接近两端的元素很快。同样最多容纳 2^32-1 个元素。</p>
+<p><strong>命令</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><span class="line">向列表两端增加元素 返回值为增加后的长度</span><br><span class="line">LPUSH key value [value ...]</span><br><span class="line">RPUSH key value [value ...]</span><br><span class="line"></span><br><span class="line">从列表中弹出元素 | 先从列表中移除，返回被移除的元素</span><br><span class="line">LPOP key</span><br><span class="line">RPOP key</span><br><span class="line"></span><br><span class="line">获取列表中元素个数</span><br><span class="line">LLEN key</span><br><span class="line"></span><br><span class="line">获取元素片段 | 索引从 0 开始，包含首尾元素 | 支持负索引，右边第一个为 -1</span><br><span class="line">LRANGE key start stop</span><br><span class="line"></span><br><span class="line">删除列表中指定的值 | count &gt; 0 删除前 count 个 | count &lt; 0 删除后 -count 个 | count &#x3D; 0 全删 </span><br><span class="line">LREM key count value</span><br><span class="line"></span><br><span class="line">获得&#x2F;设置指定索引的元素值</span><br><span class="line">LINDEX key index</span><br><span class="line">LSET key index value</span><br><span class="line"></span><br><span class="line">删除索引范围之外的所有元素</span><br><span class="line">LTRIM key start end</span><br><span class="line"></span><br><span class="line">向列表中插入元素 | 在列表中从左向右查找值为 pivot 的元素，根据第二个参数决定将 value 插到前面或后面</span><br><span class="line">LINSERT key BEFORE&#x2F;AFTER pivote value</span><br><span class="line"></span><br><span class="line">将一个元素从一个列表转移到另一个列表 | 原子操作</span><br><span class="line">RPOPLPUSH source destination</span><br></pre></td></tr></table></figure>
+<h3 id="集合类型-Set"><a href="#集合类型-Set" class="headerlink" title="集合类型 ( Set )"></a>集合类型 ( Set )</h3><p>集合在 Redis 内部使用值为空的哈希表实现，故加入、删除、判断元素是否存在等操作时间复杂度均为 O(1)。可以方便地在多个集合类型的键之间进行并集、交集和差集运算。</p>
+<p><strong>命令</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line">增加&#x2F;删除元素 | 返回成功增加&#x2F;删除的元素个数</span><br><span class="line">SADD key member [member ...]</span><br><span class="line">SREM key member [member ...]</span><br><span class="line"></span><br><span class="line">获取集合中的所有元素</span><br><span class="line">SMEMBERS key</span><br><span class="line"></span><br><span class="line">判断元素是否在集合里 | 存在返回 1 | 不存在返回 2</span><br><span class="line">SISMEMBER key member</span><br><span class="line"></span><br><span class="line">集合间运算 | 返回值为结果</span><br><span class="line">SDIFF  key [key ...] &#x2F;&#x2F; A - B</span><br><span class="line">SINTER key [key ...] &#x2F;&#x2F; A &amp; B</span><br><span class="line">SUNION key [key ...] &#x2F;&#x2F; A | B</span><br><span class="line"></span><br><span class="line">获取集合中元素个数</span><br><span class="line">SCARD key</span><br><span class="line"></span><br><span class="line">进行集合运算并将结果存储 | 不直接返回结果，而存储至 destination 中</span><br><span class="line">SDIFFSTORE  destination key [key ...]</span><br><span class="line">SINTERSTORE destination key [key ...]</span><br><span class="line">SUNIONSTORE destination key [key ...]</span><br><span class="line"></span><br><span class="line">随机获取集合中的元素 | count 为正数，返回 count 个不重复元素 </span><br><span class="line">count &gt; total 返回全部 | count 为负数 返回 -count 个 可重复元素</span><br><span class="line">随机算法为 先随机选择一个哈希桶，再从桶中随机选择一个元素 故元素少的桶中的元素随机中可能性更高</span><br><span class="line">SRANDMEMBER key [count]</span><br><span class="line"></span><br><span class="line">随机弹出一个元素</span><br><span class="line">SPOP key</span><br></pre></td></tr></table></figure>
+<h3 id="有序集合类型-Sorted-Set"><a href="#有序集合类型-Sorted-Set" class="headerlink" title="有序集合类型 ( Sorted Set )"></a>有序集合类型 ( Sorted Set )</h3><p>在集合类型的基础上为每个元素关联一个分数，用于排序。使得我们可以完成获得最高/最低分数的前 N 个元素，获得指定分数范围内的元素等与分数相关的操作。</p>
+<p>与列表的区别：</p>
+<ul>
+<li>列表类型通过链表实现，越靠近两端获取速度越快，适合用于实现“新鲜事”或“日志”这样很少访问中间元素的应用。</li>
+<li>有序集合类型使用哈希表和跳表实现，即使读取位于中间的数据速度也很快 （时间复杂度为 O( log( N ) )。</li>
+<li>列表不能简单地调整某个元素的位置，但有序集合可以通过更改这个元素的分数实现。</li>
+<li>有序集合比列表类型更耗费内存。</li>
+</ul>
+<p><strong>命令</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line">增加元素 | 如果该元素存在，就更新分数 | 返回值为新加入的元素个数 | 可使用 +inf -inf 代表正负无穷</span><br><span class="line">ZADD key score member [score member ...]</span><br><span class="line"></span><br><span class="line">获得元素的分数</span><br><span class="line">ZSCORE key member</span><br><span class="line"></span><br><span class="line">获得排名在某个范围的元素列表 | 加 WITHSCORES 连同分数一起返回</span><br><span class="line">分数相同则按元素字典序 | ZRANGE 从小到大 | ZREVRANGE 从大到小</span><br><span class="line">ZRANGE key start stop [withscores]</span><br><span class="line">ZREVRANGE key start stop [withscores]</span><br><span class="line"></span><br><span class="line">获得指定分数范围的元素 | 不希望包括端点值，可在分数前加 &quot;(&quot;  | limit offset count 等同 SQL 用法</span><br><span class="line">ZRANGEBYSCORE key min max [withscores] [limit offset count]</span><br><span class="line">ZREVRANGEBYSCORE key min max [withscores] [limit offset count]</span><br><span class="line"></span><br><span class="line">增加某个元素的分数 | 返回值为增加后的分数 | 可为负 | 如指定元素不存在，则先建立分数为 0 的元素后执行操作</span><br><span class="line">ZINCRBY key increment member</span><br><span class="line"></span><br><span class="line">获得集合中的元素数量</span><br><span class="line">ZCARD key</span><br><span class="line"></span><br><span class="line">获得指定分数范围内的元素个数</span><br><span class="line">ZCOUNT key min max</span><br><span class="line"></span><br><span class="line">删除一个或多个元素</span><br><span class="line">ZREM key member [member ...]</span><br><span class="line"></span><br><span class="line">删除一定排名范围内的元素</span><br><span class="line">ZREMRANGEBYRANK key start stop</span><br><span class="line"></span><br><span class="line">删除一定分数范围内的元素</span><br><span class="line">ZREMRANGEBYSCORE key min max</span><br><span class="line"></span><br><span class="line">获得元素排名 | ZRANK 从小到大排 | ZREVRANK 从大到小排 | 从 0 开始</span><br><span class="line">ZRANK key member</span><br><span class="line">ZREVRANK key member</span><br><span class="line"></span><br><span class="line">计算有序集合的交集存储在 dest 中 | 返回值为 dest 中的元素个数 </span><br><span class="line">sum min max 决定dest中元素分数的计算方式</span><br><span class="line">ZINTERSTORE dest numkeys key [key ...] [WEIGHTS weight [weight ...]] [SUM | MIN | MAX ]</span><br><span class="line"></span><br><span class="line">计算并集 同上</span><br><span class="line"></span><br><span class="line">ZUNIONSTORE ...</span><br></pre></td></tr></table></figure>
+<hr>
+<h2 id="学习资料"><a href="#学习资料" class="headerlink" title="学习资料"></a>学习资料</h2><blockquote>
+<p>《Redis入门指南》</p>
+</blockquote>
+
+    </article>
+    <!-- license  -->
+    
+        <div class="license-wrapper">
+            <p>原文作者：<a href="https://www.pengchen.top">枫逸</a>
+            <p>原文链接：<a href="https://www.pengchen.top/posts/19531/">https://www.pengchen.top/posts/19531/</a>
+            <p>发表日期：<a href="https://www.pengchen.top/posts/19531/">May 20th 2020, 6:35:51 pm</a>
+            <p>更新日期：<a href="https://www.pengchen.top/posts/19531/">September 5th 2020, 1:44:05 am</a>
+            <p>版权声明：本文采用<a rel="license noopener" href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank">知识共享署名-非商业性使用 4.0 国际许可协议</a>进行许可</p>
+        </div>
+    
+    <!-- paginator  -->
+    <ul class="post-paginator">
+        <li class="next">
+            
+                <div class="nextSlogan">Next Post</div>
+                <a href= "/posts/23692/" title= "实习总结：基于Prometheus + Grafana + JsonDatasource 搭建云资源监控系统">
+                    <div class="nextTitle">实习总结：基于Prometheus + Grafana + JsonDatasource 搭建云资源监控系统</div>
+                </a>
+            
+        </li>
+        <li class="previous">
+            
+                <div class="prevSlogan">Previous Post</div>
+                <a href= "/posts/11653/" title= "学习笔记：进程间通信">
+                    <div class="prevTitle">学习笔记：进程间通信</div>
+                </a>
+            
+        </li>
+    </ul>
+    <!-- 评论插件 -->
+    <!-- 来必力City版安装代码 -->
+
+    <div id="lv-container" data-id="city" data-uid= fengyi_pc@foxmail.com>
+        <script type="text/javascript">
+            (function (d, s) {
+                var j, e = d.getElementsByTagName(s)[0];
+                if (typeof LivereTower === 'function') { return; }
+                j = d.createElement(s);
+                j.src = 'https://cdn-city.livere.com/js/embed.dist.js';
+                j.async = true;
+
+                e.parentNode.insertBefore(j, e);
+            })(document, 'script');
+        </script>
+        <noscript>为正常使用来必力评论功能请激活JavaScript</noscript>
+    </div>
+
+<!-- City版安装代码已完成 -->
+    
+    
+    <!-- gitalk评论 -->
+
+    <!-- utteranc评论 -->
+
+    <!-- partial('_partial/comment/changyan') -->
+    <!--PC版-->
+
+
+    
+    
+
+    <!-- 评论 -->
+    
+</main>
+            <!-- profile -->
+            
+        </div>
+        <footer class="footer footer-unloaded">
+    <!-- social  -->
+    
+    <div class="social">
+        
+    
+        
+            
+                <a href="mailto:fengyi_pc@foxmail.com" class="iconfont-archer email" title=email ></a>
+            
+        
+    
+        
+            
+                <a href="https://github.com/fengyipc" class="iconfont-archer github" target="_blank" title=github></a>
+            
+        
+    
+        
+            
+                <span class="iconfont-archer wechat" title=wechat>
+                  
+                  <img class="profile-qr" src="/assets/mmqrcode.png" />
+                </span>
+            
+        
+    
+        
+            
+                <span class="iconfont-archer qq" title=qq>
+                  
+                  <img class="profile-qr" src="/assets/qqqrcode.jpg" />
+                </span>
+            
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+
+    </div>
+    
+    <!-- powered by Hexo  -->
+    <div class="copyright">
+        <span id="hexo-power">Powered by <a href="https://hexo.io/" target="_blank">Hexo</a></span><span class="iconfont-archer power">&#xe635;</span><span id="theme-info">theme <a href="https://github.com/fi3ework/hexo-theme-archer" target="_blank">Archer</a></span>
+    </div>
+    <!-- 不蒜子  -->
+    
+    <div class="busuanzi-container">
+    
+     
+    <span id="busuanzi_container_site_pv">PV: <span id="busuanzi_value_site_pv"></span> :)</span>
+    
+    </div>
+    
+</footer>
+    </div>
+    <!-- toc -->
+    
+    <div class="toc-wrapper" style=
+    
+
+
+
+
+
+
+
+top:50vh;
+
+    >
+        <div class="toc-catalog">
+            <span class="iconfont-archer catalog-icon">&#xe613;</span><span>CATALOG</span>
+        </div>
+        <ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#简介"><span class="toc-number">1.</span> <span class="toc-text">简介</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#数据类型"><span class="toc-number">2.</span> <span class="toc-text">数据类型</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#字符串类型-String"><span class="toc-number">2.1.</span> <span class="toc-text">字符串类型 ( String )</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#散列类型-Hash-Table"><span class="toc-number">2.2.</span> <span class="toc-text">散列类型 ( Hash Table )</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#列表类型-List"><span class="toc-number">2.3.</span> <span class="toc-text">列表类型 ( List)</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#集合类型-Set"><span class="toc-number">2.4.</span> <span class="toc-text">集合类型 ( Set )</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#有序集合类型-Sorted-Set"><span class="toc-number">2.5.</span> <span class="toc-text">有序集合类型 ( Sorted Set )</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#学习资料"><span class="toc-number">3.</span> <span class="toc-text">学习资料</span></a></li></ol>
+    </div>
+    
+    <div class="back-top iconfont-archer">&#xe639;</div>
+    <div class="sidebar sidebar-hide">
+    <ul class="sidebar-tabs sidebar-tabs-active-0">
+        <li class="sidebar-tab-archives"><span class="iconfont-archer">&#xe67d;</span><span class="tab-name">Archive</span></li>
+        <li class="sidebar-tab-tags"><span class="iconfont-archer">&#xe61b;</span><span class="tab-name">Tag</span></li>
+        <li class="sidebar-tab-categories"><span class="iconfont-archer">&#xe666;</span><span class="tab-name">Cate</span></li>
+    </ul>
+    <div class="sidebar-content sidebar-content-show-archive">
+          <div class="sidebar-panel-archives">
+    <!-- 在ejs中将archive按照时间排序 -->
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <div class="total-and-search">
+        <div class="total-archive">
+        Total : 15
+        </div>
+        <!-- search  -->
+        
+    </div>
+    
+    <div class="post-archive">
+    
+    
+    
+    
+    <div class="archive-year"> 2020 </div>
+    <ul class="year-list">
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">08/26</span><a class="archive-post-title" href= "/posts/1754/" >学习笔记：Effective C++ (二)：构造析构赋值运算</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">08/26</span><a class="archive-post-title" href= "/posts/37873/" >学习笔记：Effective C++ (一)：让自己习惯C++</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">07/24</span><a class="archive-post-title" href= "/posts/63042/" >学习笔记：Redis 设计与实现 —— 数据结构与对象</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">07/05</span><a class="archive-post-title" href= "/posts/13958/" >实习总结：标注平台结算统计接口开发中的查询优化与SQL优化知识总结</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">06/20</span><a class="archive-post-title" href= "/posts/23611/" >学习笔记：InnoDB存储引擎 索引与算法 （一）</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">06/15</span><a class="archive-post-title" href= "/posts/23692/" >实习总结：基于Prometheus + Grafana + JsonDatasource 搭建云资源监控系统</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/20</span><a class="archive-post-title" href= "/posts/19531/" >学习笔记：Redis 入门指南</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/07</span><a class="archive-post-title" href= "/posts/11653/" >学习笔记：进程间通信</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/02</span><a class="archive-post-title" href= "/posts/41580/" >CSAPP 学习笔记：并发编程</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">04/18</span><a class="archive-post-title" href= "/posts/47691/" >CSAPP 学习笔记：函数调用及栈帧原理</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">04/15</span><a class="archive-post-title" href= "/posts/19769/" >转载笔记：虚拟内存的那点事儿</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">03/15</span><a class="archive-post-title" href= "/posts/23296/" >剑指offer 47-48 ：不用加减乘除做加法、求1+2+3+...+n</a>
+        </li>
+    
+    
+    
+    
+    
+        </ul>
+    
+    <div class="archive-year"> 2019 </div>
+    <ul class="year-list">
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/31</span><a class="archive-post-title" href= "/posts/28656/" >RNN-based GAN 基础模型及相关论文</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/29</span><a class="archive-post-title" href= "/posts/5812/" >论文构思：GAN-based Data Augmentation for Fall Detection Datasets</a>
+        </li>
+    
+    
+        <li class="archive-post-item">
+            <span class="archive-post-date">05/28</span><a class="archive-post-title" href= "/posts/1521/" >论文笔记：Detecting Falls with Wearable Sensors Using Machine Learning Techniques</a>
+        </li>
+    
+    </div>
+  </div>
+        <div class="sidebar-panel-tags">
+    <div class="sidebar-tags-name">
+    
+        <span class="sidebar-tag-name" data-tags="操作系统"><span class="iconfont-archer">&#xe606;</span>操作系统</span>
+    
+        <span class="sidebar-tag-name" data-tags="学习笔记"><span class="iconfont-archer">&#xe606;</span>学习笔记</span>
+    
+        <span class="sidebar-tag-name" data-tags="并发编程"><span class="iconfont-archer">&#xe606;</span>并发编程</span>
+    
+        <span class="sidebar-tag-name" data-tags="Fall Detection"><span class="iconfont-archer">&#xe606;</span>Fall Detection</span>
+    
+        <span class="sidebar-tag-name" data-tags="Machine Learning"><span class="iconfont-archer">&#xe606;</span>Machine Learning</span>
+    
+        <span class="sidebar-tag-name" data-tags="Deep Learning"><span class="iconfont-archer">&#xe606;</span>Deep Learning</span>
+    
+        <span class="sidebar-tag-name" data-tags="C++"><span class="iconfont-archer">&#xe606;</span>C++</span>
+    
+        <span class="sidebar-tag-name" data-tags="剑指offer"><span class="iconfont-archer">&#xe606;</span>剑指offer</span>
+    
+        <span class="sidebar-tag-name" data-tags="算法笔记"><span class="iconfont-archer">&#xe606;</span>算法笔记</span>
+    
+        <span class="sidebar-tag-name" data-tags="计算机组成原理"><span class="iconfont-archer">&#xe606;</span>计算机组成原理</span>
+    
+        <span class="sidebar-tag-name" data-tags="MySQL"><span class="iconfont-archer">&#xe606;</span>MySQL</span>
+    
+        <span class="sidebar-tag-name" data-tags="数据库"><span class="iconfont-archer">&#xe606;</span>数据库</span>
+    
+        <span class="sidebar-tag-name" data-tags="Redis"><span class="iconfont-archer">&#xe606;</span>Redis</span>
+    
+        <span class="sidebar-tag-name" data-tags="实习总结"><span class="iconfont-archer">&#xe606;</span>实习总结</span>
+    
+        <span class="sidebar-tag-name" data-tags="运维"><span class="iconfont-archer">&#xe606;</span>运维</span>
+    
+        <span class="sidebar-tag-name" data-tags="集群监控"><span class="iconfont-archer">&#xe606;</span>集群监控</span>
+    
+        <span class="sidebar-tag-name" data-tags="GO语言"><span class="iconfont-archer">&#xe606;</span>GO语言</span>
+    
+        <span class="sidebar-tag-name" data-tags="后台开发"><span class="iconfont-archer">&#xe606;</span>后台开发</span>
+    
+        <span class="sidebar-tag-name" data-tags="转载笔记"><span class="iconfont-archer">&#xe606;</span>转载笔记</span>
+    
+    </div>
+    <div class="iconfont-archer sidebar-tags-empty">&#xe678;</div>
+    <div class="tag-load-fail" style="display: none; color: #ccc; font-size: 0.6rem;">
+    缺失模块。<br/>
+    1、请确保node版本大于6.2<br/>
+    2、在博客根目录（注意不是archer根目录）执行以下命令：<br/>
+    <span style="color: #f75357; font-size: 1rem; line-height: 2rem;">npm i hexo-generator-json-content --save</span><br/>
+    3、在根目录_config.yml里添加配置：
+    <pre style="color: #787878; font-size: 0.6rem;">
+jsonContent:
+  meta: false
+  pages: false
+  posts:
+    title: true
+    date: true
+    path: true
+    text: false
+    raw: false
+    content: false
+    slug: false
+    updated: false
+    comments: false
+    link: false
+    permalink: false
+    excerpt: false
+    categories: true
+    tags: true</pre>
+    </div> 
+    <div class="sidebar-tags-list"></div>
+</div>
+        <div class="sidebar-panel-categories">
+    <div class="sidebar-categories-name">
+    
+        <span class="sidebar-category-name" data-categories="学习笔记"><span class="iconfont-archer">&#xe60a;</span>学习笔记</span>
+    
+        <span class="sidebar-category-name" data-categories="机器学习"><span class="iconfont-archer">&#xe60a;</span>机器学习</span>
+    
+        <span class="sidebar-category-name" data-categories="实习总结"><span class="iconfont-archer">&#xe60a;</span>实习总结</span>
+    
+        <span class="sidebar-category-name" data-categories="转载笔记"><span class="iconfont-archer">&#xe60a;</span>转载笔记</span>
+    
+    </div>
+    <div class="iconfont-archer sidebar-categories-empty">&#xe678;</div>
+    <div class="sidebar-categories-list"></div>
+</div>
+    </div>
+</div> 
+    <script>
+    var siteMeta = {
+        root: "/",
+        author: "枫逸"
+    }
+</script>
+    <!-- CDN failover -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script>
+    <script type="text/javascript">
+        if (typeof window.$ === 'undefined')
+        {
+            console.warn('jquery load from jsdelivr failed, will load local script')
+            document.write('<script src="/lib/jquery.min.js">\x3C/script>')
+        }
+    </script>
+    <script src="/scripts/main.js"></script>
+    <!-- algolia -->
+    
+    <!-- busuanzi  -->
+    
+    <script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    
+    <!-- CNZZ  -->
+    
+    </div>
+    <!-- async load share.js -->
+    
+        <script src="/scripts/share.js" async></script><!-- hexo-inject:begin --><!-- hexo-inject:end -->    
+     
+    </body>
+</html>
+
+
